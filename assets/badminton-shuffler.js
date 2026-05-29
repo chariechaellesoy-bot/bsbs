@@ -2398,8 +2398,8 @@ function rAbout(modeOverride) {
     var acts = {
       backToModeSelectFromSession: backToModeSelect,
       backToModeSelectFromPromotion: backToModeSelect,
-	entryModeSingleBtn: function() { setPlayerEntryMode('single'); },
-entryModeBulkBtn: function() { setPlayerEntryMode('bulk'); },
+      entryModeSingleBtn: function() { setPlayerEntryMode('single'); },
+      entryModeBulkBtn: function() { setPlayerEntryMode('bulk'); },
 pEntryModeSingleBtn: function() { setPromotionEntryMode('single'); },
 pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
 
@@ -2438,7 +2438,7 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
           localStorage.removeItem('badmintonGameState');
           localStorage.removeItem('badmintonPromotionState');
           localStorage.removeItem('bdsMode');
-	localStorage.removeItem('bdsAdminState');
+          localStorage.removeItem('bdsAdminState');
           window.location.reload();
         }
       },
