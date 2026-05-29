@@ -1533,6 +1533,22 @@ function setPromotionEntryMode(mode) {
     var sk = qs('#skillChangeSkillSelect').value;
     if (!p) { notify('Select a player.', 'error'); return; }
     if (!S.playerMeta[norm(p)]) { notify('Player not found.', 'error'); return; }
+    var courtWithPlayer = S.courts.find(function(c) {
+      return c && c.players && c.players.indexOf(p) !== -1;
+    });
+    if (courtWithPlayer) {
+      var key = norm(p);
+      var prevSkill = S.playerMeta[key].skill || 'Int';
+      if (prevSkill !== sk) {
+        S.playerMeta[key].skill = sk;
+        var check = valCT(courtWithPlayer.teamA.slice(), courtWithPlayer.teamB.slice());
+        S.playerMeta[key].skill = prevSkill;
+        if (!check.ok) {
+          notify('Cannot update skill while player is on court: ' + check.msg, 'error');
+          return;
+        }
+      }
+    }
     S.playerMeta[norm(p)].skill = sk;
     notify('Skill updated for ' + p + '.');
     rAll();
@@ -1937,6 +1953,7 @@ function setPromotionEntryMode(mode) {
     popSel(qs('#editPlayerA2'), opts, undefined, c.teamA[1]);
     popSel(qs('#editPlayerB1'), opts, undefined, c.teamB[0]);
     popSel(qs('#editPlayerB2'), opts, undefined, c.teamB[1]);
+    syncEditSelectPrevValues(['#editPlayerA1', '#editPlayerA2', '#editPlayerB1', '#editPlayerB2']);
 
     oModal('managementModal');
   }
@@ -1983,8 +2000,45 @@ function setPromotionEntryMode(mode) {
     popSel(qs('#pEditPlayerA2'), opts, undefined, c.teamA[1]);
     popSel(qs('#pEditPlayerB1'), opts, undefined, c.teamB[0]);
     popSel(qs('#pEditPlayerB2'), opts, undefined, c.teamB[1]);
+    syncEditSelectPrevValues(['#pEditPlayerA1', '#pEditPlayerA2', '#pEditPlayerB1', '#pEditPlayerB2']);
 
     oModal('promotionManageModal');
+  }
+
+  function syncEditSelectPrevValues(ids) {
+    ids.forEach(function(id) {
+      var el = qs(id);
+      if (el) el.dataset.prevValue = el.value || '';
+    });
+  }
+
+  function bindEditAutoSwap(ids) {
+    var selects = ids.map(function(id) { return qs(id); }).filter(Boolean);
+    if (selects.length !== ids.length) return;
+    selects.forEach(function(sel) {
+      if (sel.dataset.autoSwapBound === 'true') return;
+      sel.dataset.autoSwapBound = 'true';
+      sel.addEventListener('change', function() {
+        var current = sel;
+        var nextValue = current.value || '';
+        var prevValue = current.dataset.prevValue || '';
+        if (!nextValue) {
+          current.dataset.prevValue = '';
+          return;
+        }
+        var duplicate = selects.find(function(other) {
+          return other !== current && other.value === nextValue;
+        });
+        if (duplicate) {
+          duplicate.value = prevValue;
+          duplicate.dataset.prevValue = duplicate.value || '';
+        }
+        current.dataset.prevValue = nextValue;
+        selects.forEach(function(other) {
+          if (other !== current && other !== duplicate) other.dataset.prevValue = other.value || '';
+        });
+      });
+    });
   }
 
   function pOpenSwap(ci) {
@@ -2213,19 +2267,32 @@ function setPromotionEntryMode(mode) {
         html += '<div class="stats-list">';
         act.forEach(function(n) {
           var pc = P.playCount[n] || {};
-          html += '<div class="stats-row"><span>' + n + '</span><strong>' + (pc.wins || 0) + 'W / ' + (pc.losses || 0) + 'L</strong></div>';
+          html += '<div class="stat-row"><span class="stat-player-name">' + n + '</span><div class="stat-text"><strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong></div></div>';
         });
         html += '</div>';
       }
     } else {
       html += '<h4>Session Stats</h4>';
-      var a = activeSessionPlayers();
-      if (!a.length) html += rES('📊', 'No players.');
+      var allStatsPlayers = S.allPlayersList.filter(function(n) { return !!S.playCount[n]; });
+      if (!allStatsPlayers.length) html += rES('📊', 'No players.');
       else {
+        allStatsPlayers.sort(function(a, b) {
+          var aActive = !!(S.playCount[a] && S.playCount[a].isActive);
+          var bActive = !!(S.playCount[b] && S.playCount[b].isActive);
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return a.localeCompare(b);
+        });
         html += '<div class="stats-list">';
-        a.forEach(function(n) {
+        allStatsPlayers.forEach(function(n) {
           var pc2 = S.playCount[n] || {};
-          html += '<div class="stats-row"><span>' + n + '</span><strong>' + (pc2.wins || 0) + 'W / ' + (pc2.losses || 0) + 'L</strong></div>';
+          var removed = !pc2.isActive;
+          html += '<div class="stat-row">' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<div class="stat-text">' +
+              '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L</strong>' +
+              (removed ? '<span class="removal-info">Removed from session</span>' : '') +
+            '</div>' +
+          '</div>';
         });
         html += '</div>';
       }
@@ -2603,6 +2670,8 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
   /* ── Inputs / Validation hooks ─────────────────────────── */
   if (qs('#courtCount')) qs('#courtCount').addEventListener('input', valStart);
   if (qs('#pCourtCount')) qs('#pCourtCount').addEventListener('input', pValStart);
+  bindEditAutoSwap(['#editPlayerA1', '#editPlayerA2', '#editPlayerB1', '#editPlayerB2']);
+  bindEditAutoSwap(['#pEditPlayerA1', '#pEditPlayerA2', '#pEditPlayerB1', '#pEditPlayerB2']);
 
   /* ── Startup ───────────────────────────────────────────── */
   lTheme();

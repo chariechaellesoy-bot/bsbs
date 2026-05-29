@@ -427,6 +427,7 @@
 #bds-app-wrapper .stat-row:last-child,.history-item:last-child{border-bottom:none}
 #bds-app-wrapper .stat-player-name.removed{text-decoration:line-through;color:var(--bds-text-light)}
 #bds-app-wrapper .stat-text{display:flex;flex-direction:column;align-items:flex-end;font-size:.62rem;text-align:right}
+#bds-app-wrapper .stat-sep{opacity:.75;margin:0 .15rem}
 #bds-app-wrapper .stat-text .removal-info{font-size:.55rem;color:var(--bds-text-light)}
 #bds-app-wrapper .history-teams .winner{font-weight:400;color:var(--bds-primary)}
 #bds-app-wrapper .history-teams .winner::before{content:'* '}
@@ -624,4 +625,4 @@
   }
 
   #bds-app-wrapper .court-action-buttons{grid-template-columns:1fr 1fr}
-  #bds-app-wrapper .winner-selection{grid-template-columns:1fr}
+  #bds-app-wrapper .winner-selection{grid-template-columns:1fr 1fr}
