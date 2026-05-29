@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   /* ── Mode & State ──────────────────────────────────────── */
-  var MODE = null, PP = [], TP = [], TTeams = [], PR = [];
+  var MODE = null, PP = [], PR = [];
 var PLAYER_ENTRY_MODE = 'single';
 var PROMOTION_ENTRY_MODE = 'single';
 
@@ -146,11 +146,6 @@ var PROMOTION_ENTRY_MODE = 'single';
     tempCourts: []
   };
 
-  var T = {
-    gameInProgress: false, courts: [], courtNames: [], teams: [],
-    schedule: [], nextMatchIdx: 0, activeMatches: [], standings: {},
-    matchHistory: [], undoStack: [], tournamentComplete: false, championName: null
-  };
 
   var P = {
     gameInProgress: false,
@@ -175,10 +170,6 @@ var PROMOTION_ENTRY_MODE = 'single';
     if (MODE === 'session' && S.gameInProgress) {
       localStorage.setItem('badmintonGameState', JSON.stringify(Object.assign({}, S, { undoStack: [] })));
       localStorage.setItem('bdsMode', 'session');
-    }
-    if (MODE === 'tournament' && T.gameInProgress) {
-      localStorage.setItem('badmintonTournamentState', JSON.stringify(Object.assign({}, T, { undoStack: [] })));
-      localStorage.setItem('bdsMode', 'tournament');
     }
     if (MODE === 'promotion' && P.gameInProgress) {
       localStorage.setItem('badmintonPromotionState', JSON.stringify(Object.assign({}, P, { undoStack: [] })));
@@ -218,7 +209,6 @@ var PROMOTION_ENTRY_MODE = 'single';
           MODE = 'session'; S = l;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
-          qs('#tournamentSetupControls').classList.add('hidden');
           if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
           qs('#actionBar').classList.remove('hidden');
           rAll();
@@ -226,28 +216,6 @@ var PROMOTION_ENTRY_MODE = 'single';
       } catch(e) {
         console.error(e);
         localStorage.removeItem('badmintonGameState');
-        localStorage.removeItem('bdsMode');
-      }
-    } else if (m === 'tournament') {
-      var j2 = localStorage.getItem('badmintonTournamentState');
-      if (!j2) return;
-      try {
-        var l2 = JSON.parse(j2);
-        if (l2 && l2.gameInProgress) {
-          if (!l2.undoStack) l2.undoStack = [];
-          if (l2.tournamentComplete === undefined) l2.tournamentComplete = false;
-          if (!l2.championName) l2.championName = null;
-          MODE = 'tournament'; T = l2;
-          showAppAfterModeSelect();
-          qs('#setupControls').classList.add('hidden');
-          qs('#tournamentSetupControls').classList.add('hidden');
-          if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
-          qs('#actionBar').classList.remove('hidden');
-          rAll();
-        }
-      } catch(e) {
-        console.error(e);
-        localStorage.removeItem('badmintonTournamentState');
         localStorage.removeItem('bdsMode');
       }
     } else if (m === 'promotion') {
@@ -267,7 +235,6 @@ var PROMOTION_ENTRY_MODE = 'single';
           MODE = 'promotion'; P = l3;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
-          qs('#tournamentSetupControls').classList.add('hidden');
           if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
           qs('#actionBar').classList.remove('hidden');
           rAll();
@@ -283,7 +250,6 @@ var PROMOTION_ENTRY_MODE = 'single';
   function showModeSelect() {
     qs('#modeSelectCard').classList.remove('hidden');
     qs('#setupControls').classList.add('hidden');
-    qs('#tournamentSetupControls').classList.add('hidden');
     if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
     qs('#results').innerHTML = '';
     qs('#actionBar').classList.add('hidden');
@@ -299,20 +265,12 @@ var PROMOTION_ENTRY_MODE = 'single';
   function updateUndoUI() {
     var btn = qs('#undoBtn'), counter = qs('#undoCounter');
     var rem = 0;
-    if (MODE === 'tournament') rem = T.undoStack.length;
-    else if (MODE === 'promotion') rem = P.undoStack.length;
+    if (MODE === 'promotion') rem = P.undoStack.length;
     else rem = S.undoStack.length;
 
     if (btn && counter) {
       btn.disabled = rem === 0;
       counter.textContent = rem > 0 ? rem + ' undo' + (rem > 1 ? 's' : '') + ' remaining' : 'No actions to undo';
-    }
-
-    var tb = qs('#tUndoBtn'), tc2 = qs('#tUndoCounter');
-    if (tb && tc2) {
-      var r2 = T.undoStack.length;
-      tb.disabled = r2 === 0;
-      tc2.textContent = r2 > 0 ? r2 + ' undo' + (r2 > 1 ? 's' : '') + ' remaining' : 'No actions to undo';
     }
 
     var pb = qs('#pUndoBtn'), pc2 = qs('#pUndoCounter');
@@ -340,22 +298,6 @@ var PROMOTION_ENTRY_MODE = 'single';
     }
   };
 
-  var cmdTournament = {
-    execute: function(fn) {
-      var b = JSON.parse(JSON.stringify(T));
-      var ok = fn();
-      if (ok) {
-        T.undoStack.push(function() { T = b; });
-        if (T.undoStack.length > MAX_UNDO) T.undoStack.shift();
-      }
-      rAll(); return ok;
-    },
-    undo: function() {
-      if (T.undoStack.length > 0) { T.undoStack.pop()(); rAll(); notify('Last action has been undone.'); }
-      else notify('Nothing to undo.', 'error');
-    }
-  };
-
   var cmdPromotion = {
     execute: function(c) {
       var b = JSON.parse(JSON.stringify(P));
@@ -379,7 +321,6 @@ var PROMOTION_ENTRY_MODE = 'single';
   function iI(n) { return gSkill(n) === 'Int'; }
   function iR(n) { return adminState.rvbList.indexOf(norm(n)) !== -1; }
   function gCL(i) {
-    if (MODE === 'tournament') return T.courtNames[i] || ('Court ' + (i + 1));
     if (MODE === 'promotion') return P.courtNames[i] || ('Court ' + (i + 1));
     return S.courtNames[i] || ('Court ' + (i + 1));
   }
@@ -1555,181 +1496,6 @@ function setPromotionEntryMode(mode) {
     var b = qs('#pStartBtn'), c = parseInt(qs('#pCourtCount').value) || 0;
     if (b) b.disabled = !(PR.length >= 4 && c >= 1 && c <= Math.floor(PR.length / 4));
   }
-
-  /* ── Tournament ────────────────────────────────────────── */
-  function tUsed() {
-    var s = new Set();
-    TTeams.forEach(function(t) { t.players.forEach(function(p) { s.add(norm(p)); }); });
-    return s;
-  }
-
-  function tRenderPickers() {
-    var used = tUsed();
-    var avail = TP.filter(function(p) { return !used.has(norm(p)); });
-    popSel(qs('#tTeamP1'), avail, 'Select Player 1');
-    popSel(qs('#tTeamP2'), avail, 'Select Player 2');
-  }
-
-  function tRenderPlayers() {
-    var el = qs('#tPlayersList');
-    if (!el) return;
-    el.innerHTML = '';
-    if (!TP.length) { el.innerHTML = rES('➕', 'Add player names to start.'); }
-    else TP.forEach(function(p, i) {
-      var r = document.createElement('div');
-      r.className = 'pending-item';
-      r.innerHTML = '<div class="meta">' + p + '</div><button class="remove-btn" data-tremove-player="' + i + '">Remove</button>';
-      el.appendChild(r);
-    });
-    tRenderPickers();
-    tValidateStart();
-  }
-
-  function tRenderTeams() {
-    var el = qs('#tTeamsList');
-    if (!el) return;
-    el.innerHTML = '';
-    if (!TTeams.length) { el.innerHTML = rES('👥', 'Create teams (2 players each).'); }
-    else TTeams.forEach(function(t, i) {
-      var r = document.createElement('div');
-      r.className = 'pending-item';
-      r.innerHTML = '<div class="meta">' + t.name + '</div><button class="remove-btn" data-tremove-team="' + i + '">Remove</button>';
-      el.appendChild(r);
-    });
-    tRenderPickers();
-    tValidateStart();
-  }
-
-  function tValidateStart() {
-    var btn = qs('#tStartBtn'), cc = parseInt(qs('#tCourtCount').value) || 0;
-    if (btn) btn.disabled = !(TTeams.length >= 2 && cc >= 1 && cc <= TTeams.length);
-  }
-
-  function tAddPlayer() {
-    var n = (qs('#tPlayerNameInput').value || '').trim();
-    if (!n) { notify('Enter a player name.', 'error'); return; }
-    var l = norm(n);
-    if (TP.some(function(x) { return norm(x) === l; })) { notify('Player already added.', 'error'); return; }
-    TP.push(n);
-    qs('#tPlayerNameInput').value = '';
-    tRenderPlayers();
-  }
-
-  function tAddTeam() {
-    var p1 = qs('#tTeamP1').value, p2 = qs('#tTeamP2').value;
-    if (!p1 || !p2) { notify('Select 2 players.', 'error'); return; }
-    if (norm(p1) === norm(p2)) { notify('Players must be different.', 'error'); return; }
-    var used = tUsed();
-    if (used.has(norm(p1)) || used.has(norm(p2))) { notify('A player is already in a team.', 'error'); return; }
-    var id = [norm(p1), norm(p2)].sort().join('|'), name = p1 + ' & ' + p2;
-    if (TTeams.some(function(t) { return t.id === id; })) { notify('Team already exists.', 'error'); return; }
-    TTeams.push({ id: id, name: name, players: [p1, p2] });
-    notify('Added team: ' + name);
-    tRenderTeams();
-  }
-
-  function genRR(teams) {
-    var list = teams.map(function(t) { return t.id; });
-    if (list.length % 2 === 1) list.push('BYE');
-    var n2 = list.length, rounds = n2 - 1, half = n2 / 2, flat = [];
-    var arr = list.slice();
-    for (var r = 0; r < rounds; r++) {
-      for (var i = 0; i < half; i++) {
-        var a = arr[i], b = arr[n2 - 1 - i];
-        if (a !== 'BYE' && b !== 'BYE') flat.push({ id: 'R' + (r + 1) + '-M' + (i + 1), round: r + 1, teamAId: a, teamBId: b, winner: null, completed: false, courtIdx: null, startTime: null, endTime: null });
-      }
-      var f = arr[0], rest = arr.slice(1);
-      rest.unshift(rest.pop());
-      arr = [f].concat(rest);
-    }
-    return flat;
-  }
-
-  function tGetTeam(id) { return T.teams.find(function(x) { return x.id === id; }); }
-
-  function tCheckChampion() {
-    if (T.tournamentComplete) return;
-    var done = T.schedule.every(function(m) { return m.completed; });
-    if (!done) return;
-    var rows = Object.values(T.standings).sort(function(a, b) { return (b.wins - a.wins) || (a.losses - b.losses); });
-    var champ = rows[0];
-    T.tournamentComplete = true;
-    T.championName = champ ? champ.name : 'Unknown';
-    fireConfetti(3000);
-    notify('🏆 Champion: ' + T.championName + '!');
-    setTimeout(function() { oModal('statsModal', rPS); }, 400);
-  }
-
-  function tFillCourts() {
-    for (var ci = 0; ci < T.courts.length; ci++) {
-      if (T.courts[ci].matchId) continue;
-      while (T.nextMatchIdx < T.schedule.length) {
-        var m = T.schedule[T.nextMatchIdx];
-        if (m.completed || m.courtIdx !== null) { T.nextMatchIdx++; continue; }
-        m.courtIdx = ci;
-        m.startTime = new Date().toISOString();
-        T.courts[ci] = { matchId: m.id };
-        T.activeMatches.push(m.id);
-        break;
-      }
-    }
-    tCheckChampion();
-  }
-
-  function tCompleteMatch(ci, ws) {
-    if (T.tournamentComplete) { notify('Tournament already complete.', 'error'); return false; }
-    var court = T.courts[ci];
-    if (!court || !court.matchId) { notify('No active match.', 'error'); return false; }
-    var m = T.schedule.find(function(x) { return x.id === court.matchId; });
-    if (!m || m.completed) { notify('Already completed.', 'error'); return false; }
-    var wId = (ws === 'A') ? m.teamAId : m.teamBId;
-    var lId = (ws === 'A') ? m.teamBId : m.teamAId;
-    m.winner = ws;
-    m.completed = true;
-    m.endTime = new Date().toISOString();
-    T.standings[wId].wins++;
-    T.standings[wId].games++;
-    T.standings[wId].played++;
-    T.standings[lId].losses++;
-    T.standings[lId].games++;
-    T.standings[lId].played++;
-    var tAN = tGetTeam(m.teamAId), tBN = tGetTeam(m.teamBId);
-    T.matchHistory.push({ mode: 'tournament', court: ci + 1, courtName: T.courtNames[ci] || ('Court ' + (ci + 1)), teamA: [tAN ? tAN.name : 'Team A'], teamB: [tBN ? tBN.name : 'Team B'], winner: ws, round: m.round, startTime: m.startTime, endTime: m.endTime });
-    T.courts[ci] = { matchId: null };
-    T.activeMatches = T.activeMatches.filter(function(id) { return id !== m.id; });
-    notify('Winner Recorded!');
-    tFillCourts();
-    return true;
-  }
-
-  function tInitTournament() {
-    var cc = parseInt(qs('#tCourtCount').value);
-    if (!cc || cc < 1) { notify('Enter valid courts.', 'error'); return; }
-    if (TTeams.length < 2) { notify('Need at least 2 teams.', 'error'); return; }
-    if (cc > TTeams.length) { notify('Courts cannot exceed teams.', 'error'); return; }
-    MODE = 'tournament';
-    var sched = genRR(TTeams);
-    var standings = {};
-    TTeams.forEach(function(t) { standings[t.id] = { teamId: t.id, name: t.name, wins: 0, losses: 0, games: 0, played: 0 }; });
-    T = {
-      gameInProgress: true,
-      courts: Array.from({ length: cc }, function() { return { matchId: null }; }),
-      courtNames: Array.from({ length: cc }, function(_, i) { return 'Court ' + (i + 1); }),
-      teams: TTeams.slice(),
-      schedule: sched,
-      nextMatchIdx: 0,
-      activeMatches: [],
-      standings: standings,
-      matchHistory: [],
-      undoStack: [],
-      tournamentComplete: false,
-      championName: null
-    };
-    qs('#tournamentSetupControls').classList.add('hidden');
-    qs('#actionBar').classList.remove('hidden');
-    tFillCourts();
-    rAll();
-  }
   /* ── Session Mgmt Actions ──────────────────────────────── */
   function activeSessionPlayers() {
     return S.allPlayersList.filter(function(n) {
@@ -2414,8 +2180,7 @@ function setPromotionEntryMode(mode) {
     var body = qs('#historyModalBody');
     if (!body) return;
     var h = [];
-    if (MODE === 'tournament') h = T.matchHistory || [];
-    else if (MODE === 'promotion') h = P.matchHistory || [];
+    if (MODE === 'promotion') h = P.matchHistory || [];
     else h = S.matchHistory || [];
 
     if (!h.length) {
@@ -2440,23 +2205,7 @@ function setPromotionEntryMode(mode) {
     if (!box) return;
 
     var html = '';
-    if (MODE === 'tournament') {
-      var rows = Object.values(T.standings || {}).sort(function(a, b) {
-        return (b.wins - a.wins) || (a.losses - b.losses);
-      });
-      html += '<h4>Tournament Standings</h4>';
-      if (!rows.length) html += rES('📊', 'No standings yet.');
-      else {
-        html += '<div class="stats-list">';
-        rows.forEach(function(r, i) {
-          html += '<div class="stats-row"><span>#' + (i + 1) + ' ' + r.name + '</span><strong>' + r.wins + '-' + r.losses + '</strong></div>';
-        });
-        html += '</div>';
-      }
-      if (T.tournamentComplete && T.championName) {
-        html += '<p><strong>Champion:</strong> ' + T.championName + '</p>';
-      }
-    } else if (MODE === 'promotion') {
+    if (MODE === 'promotion') {
       html += '<h4>Promotion Stats</h4>';
       var act = activePromotionPlayers();
       if (!act.length) html += rES('📊', 'No players.');
@@ -2536,33 +2285,6 @@ function rAbout(modeOverride) {
       '</ul>';
   }
 
-  else if (mode === 'tournament') {
-    html += '' +
-      '<h4>Tournament Mode (Round Robin)</h4>' +
-      '<p>Best for structured competition. Teams are fixed, and each team plays others in scheduled matches.</p>' +
-
-      '<h4>How it works</h4>' +
-      '<ol>' +
-        '<li>Add all player names.</li>' +
-        '<li>Create fixed 2-player teams.</li>' +
-        '<li>Set number of courts and tap <strong>Start Tournament</strong>.</li>' +
-        '<li>The app builds a round-robin schedule and fills available courts.</li>' +
-        '<li>Record winners for each match until all matches are complete.</li>' +
-      '</ol>' +
-
-      '<h4>Scoring / standings</h4>' +
-      '<ul>' +
-        '<li>Standings track wins and losses per team.</li>' +
-        '<li>When all matches are done, a champion is announced.</li>' +
-      '</ul>' +
-
-      '<h4>Tournament tools</h4>' +
-      '<ul>' +
-        '<li><strong>Undo</strong>: revert recent tournament action.</li>' +
-        '<li><strong>Reset Tournament</strong>: clear tournament data and restart.</li>' +
-      '</ul>';
-  }
-
   else if (mode === 'promotion') {
     html += '' +
       '<h4>Promotion / Relegation Mode (Queue)</h4>' +
@@ -2617,7 +2339,6 @@ function rAbout(modeOverride) {
     if (!MODE) return;
 
     if (MODE === 'session') rSessionCourts();
-    else if (MODE === 'tournament') rTournamentCourts();
     else if (MODE === 'promotion') rPromotionCourts();
 
     pDD();
@@ -2634,7 +2355,6 @@ function rAbout(modeOverride) {
 
     if (
       id === 'backToModeSelectFromSession' ||
-      id === 'backToModeSelectFromTournament' ||
       id === 'backToModeSelectFromPromotion'
     ) {
       backToModeSelect();
@@ -2677,7 +2397,6 @@ function rAbout(modeOverride) {
 
     var acts = {
       backToModeSelectFromSession: backToModeSelect,
-      backToModeSelectFromTournament: backToModeSelect,
       backToModeSelectFromPromotion: backToModeSelect,
 	entryModeSingleBtn: function() { setPlayerEntryMode('single'); },
 entryModeBulkBtn: function() { setPlayerEntryMode('bulk'); },
@@ -2688,48 +2407,35 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
         MODE = 'session';
         showAppAfterModeSelect();
         qs('#setupControls').classList.remove('hidden');
-        qs('#tournamentSetupControls').classList.add('hidden');
-        if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
-      },
-      selectTournamentModeBtn: function() {
-        MODE = 'tournament';
-        showAppAfterModeSelect();
-        qs('#setupControls').classList.add('hidden');
-        qs('#tournamentSetupControls').classList.remove('hidden');
         if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
       },
       selectPromotionModeBtn: function() {
         MODE = 'promotion';
         showAppAfterModeSelect();
         qs('#setupControls').classList.add('hidden');
-        qs('#tournamentSetupControls').classList.add('hidden');
         if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.remove('hidden');
       },
 
       aboutBtn:  function() { oModal('aboutModal', function() { rAbout('session'); }); },
-      tAboutBtn: function() { oModal('aboutModal', function() { rAbout('tournament'); }); },
       pAboutBtn: function() { oModal('aboutModal', function() { rAbout('promotion'); }); },
       helpBtn: function() { oModal('helpModal', rHelp); },
       statsBtn: function() { oModal('statsModal', rPS); },
       historyBtn: function() { oModal('historyModal', rHist); },
 
       manageGameBtn: function() {
-        if (MODE === 'tournament') oModal('tournamentManageModal');
-        else if (MODE === 'promotion') { pDD(); oModal('promotionManageModal'); }
+        if (MODE === 'promotion') { pDD(); oModal('promotionManageModal'); }
         else if (MODE === 'session') oModal('managementModal');
         else notify('Select a mode first.', 'error');
       },
 
       undoBtn: function() {
-        if (MODE === 'tournament') cmdTournament.undo();
-        else if (MODE === 'promotion') cmdPromotion.undo();
+        if (MODE === 'promotion') cmdPromotion.undo();
         else cmdSession.undo();
       },
 
       resetGameBtn: function() {
         if (confirm('Are you sure? This will erase all data.')) {
           localStorage.removeItem('badmintonGameState');
-          localStorage.removeItem('badmintonTournamentState');
           localStorage.removeItem('badmintonPromotionState');
           localStorage.removeItem('bdsMode');
 	localStorage.removeItem('bdsAdminState');
@@ -2738,15 +2444,6 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
       },
 
       adminModeBtn: function() { openAdminMode(); },
-
-      tUndoBtn: function() { cmdTournament.undo(); },
-      tResetBtn: function() {
-        if (confirm('Reset the tournament? This erases all tournament data.')) {
-          localStorage.removeItem('badmintonTournamentState');
-          localStorage.removeItem('bdsMode');
-          window.location.reload();
-        }
-      },
 
       pUndoBtn: function() { cmdPromotion.undo(); },
       pResetBtn: function() {
@@ -2762,10 +2459,6 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
 
       pAddPlayerBtn: pAddPlayer,
       pStartBtn: pInitGame,
-
-      tAddPlayerBtn: tAddPlayer,
-      tAddTeamBtn: tAddTeam,
-      tStartBtn: tInitTournament,
 
       addPlayerBtn: addMid,
       changeSkillBtn: chSkill,
@@ -2849,18 +2542,6 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
             qsa('.mgmt-sub-panel').forEach(function(p) { p.classList.remove('active'); });
           }
         }
-      } else if (MODE === 'tournament') {
-        if (act === 't-complete') {
-          qs('.winner-selection', cd).style.display = 'grid';
-          qs('.complete-button', cd).style.display = 'none';
-        } else if (act === 't-cancel-win') {
-          qs('.winner-selection', cd).style.display = 'none';
-          qs('.complete-button', cd).style.display = '';
-        } else if (act === 't-winner-a') {
-          cmdTournament.execute(function() { return tCompleteMatch(ci, 'A'); });
-        } else if (act === 't-winner-b') {
-          cmdTournament.execute(function() { return tCompleteMatch(ci, 'B'); });
-        }
       } else if (MODE === 'promotion') {
         if (act === 'p-complete') {
           qs('.winner-selection', cd).style.display = 'grid';
@@ -2917,40 +2598,17 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
       }
       return;
     }
-
-    var btn3 = e.target.closest('button[data-tremove-player]');
-    if (btn3) {
-      var i3 = parseInt(btn3.dataset.tremovePlayer, 10);
-      if (!isNaN(i3)) {
-        TP.splice(i3, 1);
-        tRenderPlayers();
-      }
-      return;
-    }
-
-    var btn4 = e.target.closest('button[data-tremove-team]');
-    if (btn4) {
-      var i4 = parseInt(btn4.dataset.tremoveTeam, 10);
-      if (!isNaN(i4)) {
-        TTeams.splice(i4, 1);
-        tRenderTeams();
-      }
-      return;
-    }
   });
 
   /* ── Inputs / Validation hooks ─────────────────────────── */
   if (qs('#courtCount')) qs('#courtCount').addEventListener('input', valStart);
   if (qs('#pCourtCount')) qs('#pCourtCount').addEventListener('input', pValStart);
-  if (qs('#tCourtCount')) qs('#tCourtCount').addEventListener('input', tValidateStart);
 
   /* ── Startup ───────────────────────────────────────────── */
   lTheme();
   showModeSelect();
   rPL();
   pRenderPendingPlayers();
-  tRenderPlayers();
-  tRenderTeams();
   pDD();
 setPlayerEntryMode('single');
 setPromotionEntryMode('single');

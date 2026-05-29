@@ -38,10 +38,6 @@
             <button id="selectSessionModeBtn" class="btn-primary" style="width:100%;">Start Session</button>
           </div>
           <div class="mode-card">
-            <h4>Tournament <span class="mode-badge">RoundRobin</span></h4>
-            <button id="selectTournamentModeBtn" class="btn-secondary" style="width:100%;">Start Tournament</button>
-          </div>
-          <div class="mode-card">
             <h4>Promotion / Stacking <span class="mode-badge">Queue</span></h4>
             <button id="selectPromotionModeBtn" class="btn-info" style="width:100%;">Start Queue</button>
           </div>
@@ -89,49 +85,6 @@
           <button id="aboutBtn" class="btn-info">About</button>
           <button id="startBtn" class="btn-primary" disabled>Start</button>
         </div>
-      </div>
-
-      <div id="tournamentSetupControls" class="bds-card hidden">
-        <div class="setup-back-row">
-          <button type="button" id="backToModeSelectFromTournament" class="setup-back-btn">Back</button>
-        </div>
-        <h3>Initial Setup (Tournament Mode)</h3>
-        <p>Enter player names only. Then build fixed teams (2 players per team).</p>
-        <h4>Add Players</h4>
-        <div>
-          <label for="tPlayerNameInput">Player Name</label>
-          <input type="text" id="tPlayerNameInput" placeholder="Enter player name..." />
-        </div>
-        <button id="tAddPlayerBtn" class="btn-secondary" style="width:100%;margin-bottom:.5rem;">Add Player</button>
-        <div>
-          <h4>Players</h4>
-          <div id="tPlayersList" class="pending-list"></div>
-        </div>
-        <h4>Create Team</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
-          <div>
-            <label for="tTeamP1">Player 1</label>
-            <select id="tTeamP1"></select>
-          </div>
-          <div>
-            <label for="tTeamP2">Player 2</label>
-            <select id="tTeamP2"></select>
-          </div>
-        </div>
-        <button id="tAddTeamBtn" class="btn-primary" style="width:100%;margin:.35rem 0 .5rem;">Add Team</button>
-        <div>
-          <h4>Teams</h4>
-          <div id="tTeamsList" class="pending-list"></div>
-        </div>
-        <div>
-          <label for="tCourtCount">Number of courts</label>
-          <input type="number" id="tCourtCount" placeholder="Number of courts" min="1" max="10" />
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.4rem;">
-          <button id="tAboutBtn" class="btn-info">About</button>
-          <button id="tStartBtn" class="btn-primary" disabled>Start Tournament</button>
-        </div>
-        <p style="margin-top:.4rem;">Note: Minimum is <strong>2 teams</strong> (4 players). Each team plays every other team once.</p>
       </div>
 
       <div id="promotionSetupControls" class="bds-card hidden">
@@ -336,19 +289,6 @@
             <select id="playerToSwapIn"></select>
             <button id="confirmSwapBtn" class="btn-primary">Confirm Swap</button>
           </div>
-        </div>
-        <div class="modal-footer"><button class="close-modal-btn">Close</button></div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="tournamentManageModal">
-      <div class="modal-container">
-        <div class="modal-header"><h3>Management (Tournament)</h3></div>
-        <div class="modal-body">
-          <h4>Game Actions</h4>
-          <button id="tUndoBtn" class="btn-secondary" style="width:100%;">Undo Last Action</button>
-          <div id="tUndoCounter" class="undo-counter"></div>
-          <button id="tResetBtn" class="btn-danger" style="margin-top:.6rem;width:100%;">Reset Tournament</button>
         </div>
         <div class="modal-footer"><button class="close-modal-btn">Close</button></div>
       </div>

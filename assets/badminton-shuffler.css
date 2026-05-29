@@ -474,7 +474,7 @@
 #bds-app-wrapper .mgmt-sub-panel.active{display:flex}
 #bds-app-wrapper .undo-counter{font-size:.58rem;color:var(--bds-text-light);margin-top:.25rem;text-align:center}
 
-#bds-app-wrapper .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;align-items:stretch}
+#bds-app-wrapper .mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;align-items:stretch}
 #bds-app-wrapper .mode-card{
   display:flex;flex-direction:column;justify-content:space-between;min-height:165px;border:3px solid var(--bds-border);border-radius:0;padding:.7rem;
   background:var(--bds-light-gray);box-shadow:3px 3px 0 #000;min-width:0;
@@ -482,7 +482,7 @@
 #bds-app-wrapper .mode-card h4{
   border:0;margin:0 0 .35rem;padding:0;display:flex;flex-wrap:wrap;align-items:flex-start;gap:.35rem;line-height:1.5;min-height:42px;font-size:.66rem;
 }
-#bds-app-wrapper .mode-card:nth-child(3) h4{font-size:.60rem}
+#bds-app-wrapper .mode-card:last-child h4{font-size:.60rem}
 #bds-app-wrapper .mode-card p{min-height:38px;margin:0 0 .6rem;font-size:.58rem;line-height:1.7}
 #bds-app-wrapper .mode-card .mode-badge{
   display:inline-block;font-size:.46rem;padding:2px 5px;border-radius:0;border:2px solid #000;background:var(--bds-card-bg);color:var(--bds-text-light);
