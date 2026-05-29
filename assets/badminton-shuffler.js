@@ -2467,8 +2467,8 @@ function rAbout(modeOverride) {
       backToModeSelectFromPromotion: backToModeSelect,
       entryModeSingleBtn: function() { setPlayerEntryMode('single'); },
       entryModeBulkBtn: function() { setPlayerEntryMode('bulk'); },
-pEntryModeSingleBtn: function() { setPromotionEntryMode('single'); },
-pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
+     pEntryModeSingleBtn: function() { setPromotionEntryMode('single'); },
+     pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
 
       selectSessionModeBtn: function() {
         MODE = 'session';
@@ -2679,7 +2679,7 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
   rPL();
   pRenderPendingPlayers();
   pDD();
-setPlayerEntryMode('single');
-setPromotionEntryMode('single');
+  setPlayerEntryMode('single');
+  setPromotionEntryMode('single');
   load();
 });
