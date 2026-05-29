@@ -2261,13 +2261,26 @@ function setPromotionEntryMode(mode) {
     var html = '';
     if (MODE === 'promotion') {
       html += '<h4>Promotion Stats</h4>';
-      var act = activePromotionPlayers();
-      if (!act.length) html += rES('📊', 'No players.');
+      var promoStatsPlayers = P.allPlayersList.filter(function(n) { return !!P.playCount[n]; });
+      if (!promoStatsPlayers.length) html += rES('📊', 'No players.');
       else {
+        promoStatsPlayers.sort(function(a, b) {
+          var aActive = !!(P.playCount[a] && P.playCount[a].isActive);
+          var bActive = !!(P.playCount[b] && P.playCount[b].isActive);
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return a.localeCompare(b);
+        });
         html += '<div class="stats-list">';
-        act.forEach(function(n) {
+        promoStatsPlayers.forEach(function(n) {
           var pc = P.playCount[n] || {};
-          html += '<div class="stat-row"><span class="stat-player-name">' + n + '</span><div class="stat-text"><strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong></div></div>';
+          var removed = !pc.isActive;
+          html += '<div class="stat-row">' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<div class="stat-text">' +
+              '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong>' +
+              (removed ? '<span class="removal-info">Removed from queue</span>' : '') +
+            '</div>' +
+          '</div>';
         });
         html += '</div>';
       }
@@ -2389,16 +2402,74 @@ function rAbout(modeOverride) {
   function rHelp() {
     var body = qs('#helpModalBody');
     if (!body) return;
+    var mode = MODE || 'session';
+
+    if (mode === 'promotion') {
+      body.innerHTML =
+        '<h4>Promotion / Relegation Mode Manual</h4>' +
+        '<p>Use this mode when you want a queue that keeps moving after every result. Players begin in the Seed Lane, winners climb to Winners Lane, and losers drop to Losers Lane.</p>' +
+        '<h5>Starting a queue</h5>' +
+        '<ol>' +
+          '<li>Add at least 4 players in Single or Bulk entry mode.</li>' +
+          '<li>Set the number of courts you want to keep active.</li>' +
+          '<li>Tap <strong>Start Queue</strong> to seed the first matches.</li>' +
+        '</ol>' +
+        '<h5>What happens after each game</h5>' +
+        '<ol>' +
+          '<li>Tap <strong>Complete Game</strong> on the correct court.</li>' +
+          '<li>Select the winning team.</li>' +
+          '<li>The winning pair goes into Winners Lane and the losing pair goes into Losers Lane.</li>' +
+          '<li>The app refills open courts from the best available lane group and reshuffles teams for the next game.</li>' +
+        '</ol>' +
+        '<h5>How to manage the queue</h5>' +
+        '<ul>' +
+          '<li><strong>Manage → Add Player</strong>: adds a new player into the Seed Lane.</li>' +
+          '<li><strong>Manage → Remove Player</strong>: removes the player from live rotation but keeps their stats visible in the Stats screen.</li>' +
+          '<li><strong>Manage → Reinstate Player</strong>: returns a removed player to the Seed Lane so they can join upcoming games again.</li>' +
+          '<li><strong>Swap</strong> on a court only allows replacements from the same lane context as that court.</li>' +
+          '<li><strong>Custom Game</strong> lets you queue a specific 4-player match once those players are all waiting.</li>' +
+        '</ul>' +
+        '<h5>Reading the screen</h5>' +
+        '<ul>' +
+          '<li>Each court badge shows whether the match belongs to the Seed, Winners, or Losers flow.</li>' +
+          '<li>The three lane panels show who is currently waiting in each lane.</li>' +
+          '<li><strong>Stats</strong> keeps player records even if someone has been removed from the queue.</li>' +
+          '<li><strong>History</strong> shows completed promotion games and their winners.</li>' +
+        '</ul>' +
+        '<p><em>Tip:</em> Progress saves automatically on this device, so you can reopen the app and continue the same queue later.</p>';
+      return;
+    }
 
     body.innerHTML =
-      '<h4>Quick Help</h4>' +
+      '<h4>Session Mode Manual</h4>' +
+      '<p>Use this mode for a standard club night shuffle. The app keeps rotating players through courts while trying to keep games fair and reduce repeat pairings.</p>' +
+      '<h5>Starting a session</h5>' +
       '<ol>' +
-        '<li>Select a mode from the home screen.</li>' +
-        '<li>Add players and set court count.</li>' +
-        '<li>Start and record winners for each game.</li>' +
-        '<li>Use Manage for edits, swaps, and admin tools.</li>' +
+        '<li>Add players in Single or Bulk entry mode.</li>' +
+        '<li>Assign each player a skill level before the session starts.</li>' +
+        '<li>Set the number of courts, then tap <strong>Start</strong>.</li>' +
       '</ol>' +
-      '<p>Tip: Your progress auto-saves in local storage.</p>';
+      '<h5>Running games</h5>' +
+      '<ol>' +
+        '<li>Each active court shows Team A versus Team B.</li>' +
+        '<li>When a game finishes, tap <strong>Complete Game</strong> and record the winner.</li>' +
+        '<li>The finished players return to the waiting pool and the app builds the next fair set of matches.</li>' +
+      '</ol>' +
+      '<h5>How to manage the session</h5>' +
+      '<ul>' +
+        '<li><strong>Edit</strong> changes the current team arrangement on a court.</li>' +
+        '<li><strong>Swap</strong> replaces an on-court player with an eligible resting player.</li>' +
+        '<li><strong>Manage → Remove Player</strong> takes someone out of rotation but keeps their stats visible and marked as removed.</li>' +
+        '<li><strong>Manage → Reinstate Player</strong> returns a removed player to the resting pool.</li>' +
+        '<li><strong>Custom Game</strong> schedules a specific 4-player match after the number of games you choose.</li>' +
+      '</ul>' +
+      '<h5>Useful screens</h5>' +
+      '<ul>' +
+        '<li><strong>Stats</strong> tracks wins and losses for every player in the session.</li>' +
+        '<li><strong>History</strong> records completed matches.</li>' +
+        '<li><strong>Manage → Game Actions</strong> gives access to Undo, Reset, and Admin Mode tools.</li>' +
+      '</ul>' +
+      '<p><em>Tip:</em> Session progress auto-saves on this device, so you can close the page and resume later.</p>';
   }
 
   /* ── Unified Render ────────────────────────────────────── */
