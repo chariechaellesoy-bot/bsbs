@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BlackSheep Shuffler</title>
+  <link rel="stylesheet" href="assets/badminton-shuffler.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header id="appHeader">
+    <h1>🏸 BlackSheep Shuffler <span class="version-tag">v6.3.0</span></h1>
+  </header>
+
+  <!-- ============================================================
+       HOME SCREEN — mode selection
+  ============================================================ -->
+  <div id="homeScreen" class="screen">
+    <div class="home-tagline">Pick a game mode to get started</div>
+    <div class="mode-cards">
+
+      <div class="mode-card" onclick="act('selectMode','session')">
+        <div class="mode-icon">🏸</div>
+        <div class="mode-title">Session</div>
+        <div class="mode-desc">Casual play with skill-balanced teams</div>
+      </div>
+
+      <div class="mode-card" onclick="act('selectMode','tournament')">
+        <div class="mode-icon">🏆</div>
+        <div class="mode-title">Tournament</div>
+        <div class="mode-desc">Fixed teams, round-robin schedule</div>
+      </div>
+
+      <div class="mode-card" onclick="act('selectMode','promotion')">
+        <div class="mode-icon">⬆️</div>
+        <div class="mode-title">Queue / Promotion</div>
+        <div class="mode-desc">Winners move up, losers move down</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SESSION MODE
+  ============================================================ -->
+  <div id="sessionScreen" class="screen hidden">
+
+    <!-- Setup Card -->
+    <div id="setupControls" class="setup-card">
+      <div class="setup-back-row">
+        <button class="setup-back-btn" onclick="act('goHome')">← Home</button>
+        <h2 class="setup-title">Session Setup</h2>
+      </div>
+
+      <!-- Player Entry -->
+      <div class="setup-section">
+        <label class="setup-label" for="playerNameInput">Add Players</label>
+        <div class="entry-mode-row">
+          <button id="entryModeSingleBtn" class="entry-mode-btn active" onclick="act('setSessionSingle')">Single</button>
+          <button id="entryModeBulkBtn" class="entry-mode-btn" onclick="act('setSessionBulk')">Bulk</button>
+        </div>
+        <p id="playerEntryHint" class="entry-hint">Type a name and press Add or Enter</p>
+        <div class="input-row">
+          <input type="text" id="playerNameInput" class="text-input" placeholder="Player name" onkeydown="if(event.key==='Enter')act('addPlayer')">
+          <button class="add-btn" onclick="act('addPlayer')">Add</button>
+        </div>
+        <textarea id="playerNameBulkInput" class="text-input bulk-input hidden" placeholder="One name per line, or comma-separated&#10;Alice&#10;Bob, Carol&#10;Dave"></textarea>
+        <button id="bulkAddBtn" class="add-btn bulk-add-btn hidden" onclick="act('addPlayer')">Add All</button>
+        <div class="skill-legend">
+          <span class="skill-dot beg"></span>Beginner
+          <span class="skill-dot int"></span>Intermediate
+          <span class="skill-dot adv"></span>Advanced
+        </div>
+      </div>
+
+      <div id="sessionPlayerList" class="player-setup-list"></div>
+
+      <!-- Court Count -->
+      <div class="setup-section">
+        <label class="setup-label">Courts</label>
+        <div class="stepper-row">
+          <button class="stepper-btn" onclick="act('courtMinus')">−</button>
+          <span id="courtCountDisplay" class="stepper-val">1</span>
+          <button class="stepper-btn" onclick="act('courtPlus')">+</button>
+        </div>
+      </div>
+
+      <div class="setup-btn-grid">
+        <button class="btn-secondary" onclick="act('showAbout')">About</button>
+        <button class="btn-primary" onclick="act('startSession')">▶ Start Session</button>
+      </div>
+    </div>
+
+    <!-- Game View -->
+    <div id="sessionGame" class="game-view hidden">
+      <div id="sessionCourts" class="courts-container"></div>
+      <div id="sessionWaiting" class="waiting-list">
+        <h3 class="waiting-heading">Resting Players</h3>
+        <div id="sessionRestingList" class="resting-players"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       TOURNAMENT MODE
+  ============================================================ -->
+  <div id="tournamentScreen" class="screen hidden">
+
+    <!-- Setup Card -->
+    <div id="tournamentSetupControls" class="setup-card">
+      <div class="setup-back-row">
+        <button class="setup-back-btn" onclick="act('goHome')">← Home</button>
+        <h2 class="setup-title">Tournament Setup</h2>
+      </div>
+
+      <!-- Player Entry -->
+      <div class="setup-section">
+        <label class="setup-label" for="tPlayerNameInput">Add Players</label>
+        <div class="entry-mode-row">
+          <button id="tEntryModeSingleBtn" class="entry-mode-btn active" onclick="act('setTournamentSingle')">Single</button>
+          <button id="tEntryModeBulkBtn" class="entry-mode-btn" onclick="act('setTournamentBulk')">Bulk</button>
+        </div>
+        <p id="tPlayerEntryHint" class="entry-hint">Type a name and press Add or Enter</p>
+        <div class="input-row">
+          <input type="text" id="tPlayerNameInput" class="text-input" placeholder="Player name" onkeydown="if(event.key==='Enter')act('tAddPlayer')">
+          <button class="add-btn" onclick="act('tAddPlayer')">Add</button>
+        </div>
+        <textarea id="tPlayerNameBulkInput" class="text-input bulk-input hidden" placeholder="One name per line, or comma-separated&#10;Alice&#10;Bob, Carol&#10;Dave"></textarea>
+        <button id="tBulkAddBtn" class="add-btn bulk-add-btn hidden" onclick="act('tAddPlayer')">Add All</button>
+      </div>
+
+      <div id="tPlayerList" class="player-setup-list"></div>
+
+      <!-- Team Builder -->
+      <div class="setup-section" id="tTeamBuilder">
+        <label class="setup-label">Create Teams (2 players each)</label>
+        <div id="tTeamList" class="team-setup-list"></div>
+        <button class="btn-secondary small-btn" onclick="act('tAutoTeams')">Auto-create Teams</button>
+      </div>
+
+      <!-- Court Count -->
+      <div class="setup-section">
+        <label class="setup-label">Courts</label>
+        <div class="stepper-row">
+          <button class="stepper-btn" onclick="act('tCourtMinus')">−</button>
+          <span id="tCourtCountDisplay" class="stepper-val">1</span>
+          <button class="stepper-btn" onclick="act('tCourtPlus')">+</button>
+        </div>
+      </div>
+
+      <div class="setup-btn-grid">
+        <button class="btn-secondary" onclick="act('showAbout')">About</button>
+        <button class="btn-primary" onclick="act('startTournament')">▶ Start Tournament</button>
+      </div>
+    </div>
+
+    <!-- Game View -->
+    <div id="tournamentGame" class="game-view hidden">
+      <div id="tournamentCourts" class="courts-container"></div>
+      <div id="tournamentSchedule" class="waiting-list">
+        <h3 class="waiting-heading">Upcoming Matches</h3>
+        <div id="tournamentMatchQueue" class="match-queue"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       PROMOTION / QUEUE MODE
+  ============================================================ -->
+  <div id="promotionScreen" class="screen hidden">
+
+    <!-- Setup Card -->
+    <div id="promotionSetupControls" class="setup-card">
+      <div class="setup-back-row">
+        <button class="setup-back-btn" onclick="act('goHome')">← Home</button>
+        <h2 class="setup-title">Queue / Promotion Setup</h2>
+      </div>
+
+      <!-- Player Entry -->
+      <div class="setup-section">
+        <label class="setup-label" for="pPlayerNameInput">Add Players</label>
+        <div class="entry-mode-row">
+          <button id="pEntryModeSingleBtn" class="entry-mode-btn active" onclick="act('setPromotionSingle')">Single</button>
+          <button id="pEntryModeBulkBtn" class="entry-mode-btn" onclick="act('setPromotionBulk')">Bulk</button>
+        </div>
+        <p id="pPlayerEntryHint" class="entry-hint">Type a name and press Add or Enter</p>
+        <div class="input-row">
+          <input type="text" id="pPlayerNameInput" class="text-input" placeholder="Player name" onkeydown="if(event.key==='Enter')act('pAddPlayer')">
+          <button class="add-btn" onclick="act('pAddPlayer')">Add</button>
+        </div>
+        <textarea id="pPlayerNameBulkInput" class="text-input bulk-input hidden" placeholder="One name per line, or comma-separated&#10;Alice&#10;Bob, Carol&#10;Dave"></textarea>
+        <button id="pBulkAddBtn" class="add-btn bulk-add-btn hidden" onclick="act('pAddPlayer')">Add All</button>
+      </div>
+
+      <div id="pPlayerList" class="player-setup-list"></div>
+
+      <!-- Court Count -->
+      <div class="setup-section">
+        <label class="setup-label">Courts</label>
+        <div class="stepper-row">
+          <button class="stepper-btn" onclick="act('pCourtMinus')">−</button>
+          <span id="pCourtCountDisplay" class="stepper-val">1</span>
+          <button class="stepper-btn" onclick="act('pCourtPlus')">+</button>
+        </div>
+      </div>
+
+      <div class="setup-btn-grid">
+        <button class="btn-secondary" onclick="act('showAbout')">About</button>
+        <button class="btn-primary" onclick="act('startPromotion')">▶ Start Queue</button>
+      </div>
+    </div>
+
+    <!-- Game View -->
+    <div id="promotionGame" class="game-view hidden">
+      <div id="promotionCourts" class="courts-container"></div>
+      <div class="lane-pools">
+        <div id="seedPool" class="waiting-list lane-pool">
+          <h3 class="waiting-heading">🌱 Seed Lane</h3>
+          <div id="seedPoolList" class="resting-players"></div>
+        </div>
+        <div id="winnersPool" class="waiting-list lane-pool">
+          <h3 class="waiting-heading">🏆 Winners Lane</h3>
+          <div id="winnersPoolList" class="resting-players"></div>
+        </div>
+        <div id="losersPool" class="waiting-list lane-pool">
+          <h3 class="waiting-heading">💪 Losers Lane</h3>
+          <div id="losersPoolList" class="resting-players"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       MODALS
+  ============================================================ -->
+
+  <!-- Stats Modal -->
+  <div id="statsModal" class="modal hidden" onclick="if(event.target===this)act('closeStats')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">📊 Stats</span>
+        <button class="modal-close" onclick="act('closeStats')">✕</button>
+      </div>
+      <div class="modal-body" id="statsModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeStats')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="historyModal" class="modal hidden" onclick="if(event.target===this)act('closeHistory')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">📜 History</span>
+        <button class="modal-close" onclick="act('closeHistory')">✕</button>
+      </div>
+      <div class="modal-body" id="historyModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeHistory')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal hidden" onclick="if(event.target===this)act('closeHelp')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">❓ Help</span>
+        <button class="modal-close" onclick="act('closeHelp')">✕</button>
+      </div>
+      <div class="modal-body" id="helpModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeHelp')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div id="aboutModal" class="modal hidden" onclick="if(event.target===this)act('closeAbout')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">ℹ️ About</span>
+        <button class="modal-close" onclick="act('closeAbout')">✕</button>
+      </div>
+      <div class="modal-body" id="aboutModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeAbout')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Modal -->
+  <div id="manageModal" class="modal hidden" onclick="if(event.target===this)act('closeManage')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">⚙️ Manage</span>
+        <button class="modal-close" onclick="act('closeManage')">✕</button>
+      </div>
+      <div class="modal-body" id="manageModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeManage')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Teams Modal -->
+  <div id="editTeamsModal" class="modal hidden" onclick="if(event.target===this)act('closeEditTeams')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">✏️ Edit Teams</span>
+        <button class="modal-close" onclick="act('closeEditTeams')">✕</button>
+      </div>
+      <div class="modal-body" id="editTeamsModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="act('closeEditTeams')">Cancel</button>
+        <button class="btn-primary" onclick="act('saveEditTeams')">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Confetti container -->
+  <div id="confettiContainer" class="confetti-container hidden"></div>
+
+  <!-- ============================================================
+       BOTTOM NAVIGATION
+  ============================================================ -->
+  <nav id="bottomNav" class="bottom-nav hidden">
+    <button class="nav-btn" id="statsBtn" onclick="act('showStats')">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Stats</span>
+    </button>
+    <button class="nav-btn" id="historyBtn" onclick="act('showHistory')">
+      <span class="nav-icon">📜</span>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-btn" id="manageBtn" onclick="act('showManage')">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Manage</span>
+    </button>
+    <button class="nav-btn" id="helpBtn" onclick="act('showHelp')">
+      <span class="nav-icon">❓</span>
+      <span class="nav-label">Help</span>
+    </button>
+  </nav>
+
+  <script src="assets/badminton-shuffler.js"></script>
+</body>
+</html>
