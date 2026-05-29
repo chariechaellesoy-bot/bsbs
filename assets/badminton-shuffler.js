@@ -107,6 +107,12 @@ function loadState() {
     if (t) T = JSON.parse(t);
     var p = localStorage.getItem('bsbs_P');
     if (p) P = JSON.parse(p);
+    var sem = localStorage.getItem('bsbs_sem');
+    if (sem) SESSION_ENTRY_MODE = sem;
+    var pem = localStorage.getItem('bsbs_pem');
+    if (pem) PROMOTION_ENTRY_MODE = pem;
+    var tem = localStorage.getItem('bsbs_tem');
+    if (tem) TOURNAMENT_ENTRY_MODE = tem;
   } catch(e) { /* ignore */ }
 }
 
@@ -545,7 +551,7 @@ function doSwapOut(args) {
   resting.forEach(function(rp) {
     html += '<div class="manage-player-row">' +
       '<span class="manage-player-name">' + esc(rp.name) + '</span>' +
-      '<button class="manage-btn success" onclick="act(\'doSwapIn\',[' + courtIdx + ',' + playerIdx + ',\'' + esc(rp.name) + '\'])">Sub In</button>' +
+      '<button class="manage-btn success" onclick="act(\'doSwapIn\',[' + courtIdx + ',' + playerIdx + ',' + JSON.stringify(rp.name) + '])">Sub In</button>' +
     '</div>';
   });
   html += '</div>';
@@ -921,7 +927,7 @@ function renderPPlayerList() {
   var html = names.map(function(name, i) {
     return '<div class="player-setup-item">' +
       '<span class="player-setup-name">' + esc(name) + '</span>' +
-      '<button class="remove-player-btn" onclick="act(\'pRemoveSetup\',\'' + esc(name) + '\')">✕</button>' +
+      '<button class="remove-player-btn" onclick="act(\'pRemoveSetup\',' + JSON.stringify(name) + ')">✕</button>' +
     '</div>';
   }).join('');
   setHtml('pPlayerList', html || '<div style="color:var(--color-dimmed);font-size:13px;text-align:center;padding:8px">No players yet</div>');
@@ -1528,7 +1534,7 @@ function renderManageModal() {
       html += '<div class="manage-player-row">' +
         '<span class="skill-dot ' + p.skill + '"></span>' +
         '<span class="manage-player-name">' + esc(p.name) + '</span>' +
-        '<button class="manage-btn danger" onclick="act(\'manageRemoveSession\',\'' + esc(p.name) + '\')">Remove</button>' +
+        '<button class="manage-btn danger" onclick="act(\'manageRemoveSession\',' + JSON.stringify(p.name) + ')">Remove</button>' +
       '</div>';
     });
     html += '</div>';
@@ -1539,7 +1545,7 @@ function renderManageModal() {
       removed.forEach(function(p) {
         html += '<div class="manage-player-row">' +
           '<span class="manage-player-name removed-name">' + esc(p.name) + '</span>' +
-          '<button class="manage-btn success" onclick="act(\'manageReinstateSession\',\'' + esc(p.name) + '\')">Reinstate</button>' +
+          '<button class="manage-btn success" onclick="act(\'manageReinstateSession\',' + JSON.stringify(p.name) + ')">Reinstate</button>' +
         '</div>';
       });
       html += '</div>';
@@ -1569,7 +1575,7 @@ function renderManageModal() {
       html += '<div class="manage-player-row">' +
         '<span class="manage-player-name">' + esc(name) + '</span>' +
         '<span style="font-size:11px;color:var(--color-dimmed)">' + laneLabel + '</span>' +
-        '<button class="manage-btn danger" onclick="act(\'pRem\',\'' + esc(name) + '\')">Remove</button>' +
+        '<button class="manage-btn danger" onclick="act(\'pRem\',' + JSON.stringify(name) + ')">Remove</button>' +
       '</div>';
     });
     html += '</div>';
@@ -1580,7 +1586,7 @@ function renderManageModal() {
       removedPl.forEach(function(name) {
         html += '<div class="manage-player-row">' +
           '<span class="manage-player-name removed-name">' + esc(name) + '</span>' +
-          '<button class="manage-btn success" onclick="act(\'pReinstate\',\'' + esc(name) + '\')">Reinstate</button>' +
+          '<button class="manage-btn success" onclick="act(\'pReinstate\',' + JSON.stringify(name) + ')">Reinstate</button>' +
         '</div>';
       });
       html += '</div>';
@@ -1824,10 +1830,10 @@ function act(action, data) {
   if ($id('tCourtCountDisplay')) $id('tCourtCountDisplay').textContent = T.courtCount || 1;
   if ($id('pCourtCountDisplay')) $id('pCourtCountDisplay').textContent = P.courtCount || 1;
 
-  // Set entry modes
-  setPlayerEntryMode('single');
-  setPromotionEntryMode('single');
-  setTournamentEntryMode('single');
+  // Set entry modes (restored from localStorage, or default 'single')
+  setPlayerEntryMode(SESSION_ENTRY_MODE);
+  setPromotionEntryMode(PROMOTION_ENTRY_MODE);
+  setTournamentEntryMode(TOURNAMENT_ENTRY_MODE);
 
   // Navigate to saved mode
   if (MODE && MODE !== 'home') {
