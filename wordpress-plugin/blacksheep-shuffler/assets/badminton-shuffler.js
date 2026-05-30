@@ -50,6 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function norm(n) { return (n || '').trim().toLowerCase(); }
+  function escHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
+  }
 
   function shuf(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -488,7 +493,15 @@ var PROMOTION_ENTRY_MODE = 'single';
     adminState.rvbList.forEach(function(name) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      r.innerHTML = '<div class="meta">' + name + '</div><button class="remove-btn" data-rvb-remove="' + name + '">Remove</button>';
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = name;
+      var btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.setAttribute('data-rvb-remove', name);
+      btn.textContent = 'Remove';
+      r.appendChild(meta);
+      r.appendChild(btn);
       el.appendChild(r);
     });
   }
@@ -1357,7 +1370,19 @@ function setPromotionEntryMode(mode) {
     else PP.forEach(function(p, i) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      r.innerHTML = '<div class="meta">' + p.name + ' <span class="player-skill">' + p.skill + '</span></div><button class="remove-btn" data-remove-index="' + i + '">Remove</button>';
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = p.name + ' ';
+      var skill = document.createElement('span');
+      skill.className = 'player-skill';
+      skill.textContent = p.skill;
+      meta.appendChild(skill);
+      var btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.setAttribute('data-remove-index', i);
+      btn.textContent = 'Remove';
+      r.appendChild(meta);
+      r.appendChild(btn);
       l.appendChild(r);
     });
     valStart();
@@ -1486,7 +1511,15 @@ function setPromotionEntryMode(mode) {
     else PR.forEach(function(p, i) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      r.innerHTML = '<div class="meta">' + p + '</div><button class="remove-btn" data-premove-index="' + i + '">Remove</button>';
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = p;
+      var btn = document.createElement('button');
+      btn.className = 'remove-btn';
+      btn.setAttribute('data-premove-index', i);
+      btn.textContent = 'Remove';
+      r.appendChild(meta);
+      r.appendChild(btn);
       l.appendChild(r);
     });
     pValStart();
@@ -2138,7 +2171,7 @@ function setPromotionEntryMode(mode) {
   } else {
     out += '<div class="player-tag-container">';
     waiting.forEach(function(n) {
-      out += '<div class="player-tag">' + pDot(n) + n + ' ' + pLbl(n) + '</div>';
+      out += '<div class="player-tag">' + pDot(n) + escHtml(n) + ' ' + pLbl(n) + '</div>';
     });
     out += '</div>';
   }
@@ -2214,7 +2247,7 @@ function setPromotionEntryMode(mode) {
     } else {
       s += '<div class="player-tag-container">';
       arr.forEach(function(n) {
-        s += '<div class="player-tag">' + n + '</div>';
+        s += '<div class="player-tag">' + escHtml(n) + '</div>';
       });
       s += '</div>';
     }
@@ -2243,11 +2276,12 @@ function setPromotionEntryMode(mode) {
     }
 
     body.innerHTML = h.slice().reverse().map(function(m) {
-      var tA = (m.teamA || []).join(' & ');
-      var tB = (m.teamB || []).join(' & ');
+      var tA = escHtml((m.teamA || []).join(' & '));
+      var tB = escHtml((m.teamB || []).join(' & '));
       var wn = m.winner === 'A' ? tA : tB;
+      var courtName = escHtml(m.courtName || ('Court ' + m.court));
       return '<div class="history-item">' +
-        '<strong>' + (m.courtName || ('Court ' + m.court)) + '</strong><br>' +
+        '<strong>' + courtName + '</strong><br>' +
         tA + ' vs ' + tB + '<br>' +
         'Winner: <strong>' + wn + '</strong>' +
       '</div>';
@@ -2300,7 +2334,7 @@ function setPromotionEntryMode(mode) {
           var pc2 = S.playCount[n] || {};
           var removed = !pc2.isActive;
           html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + escHtml(n) + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L</strong>' +
               (removed ? '<span class="removal-info">Removed from session</span>' : '') +
