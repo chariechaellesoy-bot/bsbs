@@ -50,6 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function norm(n) { return (n || '').trim().toLowerCase(); }
+  function escHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
+    });
+  }
   function fmtLocalDateTime(ts) {
     if (!ts) return 'N/A';
     var d = new Date(ts);
@@ -2269,15 +2274,16 @@ function setPromotionEntryMode(mode) {
     }
 
     body.innerHTML = h.slice().reverse().map(function(m) {
-      var tA = (m.teamA || []).join(' & ');
-      var tB = (m.teamB || []).join(' & ');
+      var tA = escHtml((m.teamA || []).join(' & '));
+      var tB = escHtml((m.teamB || []).join(' & '));
       var wn = m.winner === 'A' ? tA : tB;
-      var startedAt = fmtLocalDateTime(m.startTime);
-      var completedAt = fmtLocalDateTime(m.endTime);
-      var totalGameTime = fmtGameDuration(m.startTime, m.endTime);
+      var courtName = escHtml(m.courtName || ('Court ' + m.court));
+      var startedAt = escHtml(fmtLocalDateTime(m.startTime));
+      var completedAt = escHtml(fmtLocalDateTime(m.endTime));
+      var totalGameTime = escHtml(fmtGameDuration(m.startTime, m.endTime));
       return '<div class="history-item">' +
         '<div class="history-main">' +
-          '<span class="history-court-name">' + (m.courtName || ('Court ' + m.court)) + '</span>' +
+          '<span class="history-court-name">' + courtName + '</span>' +
           '<span class="history-matchup">' + tA + ' <span class="history-vs">vs</span> ' + tB + '</span>' +
         '</div>' +
         '<div class="history-winner-block">' +
