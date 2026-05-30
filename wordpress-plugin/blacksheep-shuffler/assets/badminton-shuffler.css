@@ -132,6 +132,29 @@
   margin-bottom:.6rem;
   width:100%;
 }
+#bds-app-wrapper .court > h3{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.35rem;
+  margin-bottom:.45rem;
+  color:var(--bds-primary);
+  text-shadow:2px 2px 0 #000;
+}
+#bds-app-wrapper .court > h3 .mode-badge{
+  display:inline-block;
+  font-size:.46rem;
+  line-height:1.4;
+  padding:2px 6px;
+  border:2px solid #000;
+  background:#2a1b45;
+  color:#f8f4e3;
+  box-shadow:2px 2px 0 rgba(0,0,0,.55);
+}
+#bds-app-wrapper.dark-mode .court > h3 .mode-badge{
+  background:#f6e79d;
+  color:#2b1d0e;
+}
 
 /* Main court visual used by JS: .badminton-court */
 /* === FINAL COURT LAYOUT TUNING === */
