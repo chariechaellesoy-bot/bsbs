@@ -2111,8 +2111,8 @@ function setPromotionEntryMode(mode) {
 
   function pb(name, teamClass) {
     return '<div class="player-box ' + teamClass + '">' +
-      '<span>' + name + '</span>' +
-      '<span class="player-skill">' + pLbl(name).replace(/<\/?[^>]+(>|$)/g, '') + '</span>' +
+      '<span>' + escHtml(name) + '</span>' +
+      '<span class="player-skill">' + escHtml(gSkill(name) + (hasHotStreak(name) ? ' 🔥' : '')) + '</span>' +
     '</div>';
   }
 
@@ -2120,7 +2120,7 @@ function setPromotionEntryMode(mode) {
     var hasGame = c.players && c.players.length === 4;
 
     out += '<div class="court" data-court="' + i + '">';
-    out += '<h3>' + gCL(i) + (c.isTemp ? ' <span class="mode-badge">Custom</span>' : '') + '</h3>';
+    out += '<h3>' + escHtml(gCL(i)) + (c.isTemp ? ' <span class="mode-badge">Custom</span>' : '') + '</h3>';
 
     out += '<div class="badminton-court">';
     out += courtLines;
@@ -2190,7 +2190,7 @@ function setPromotionEntryMode(mode) {
 
   function pBox(name, teamClass) {
   return '<div class="player-box ' + teamClass + '">' +
-    '<span>' + name + '</span>' +
+    '<span>' + escHtml(name) + '</span>' +
   '</div>';
 }
 
@@ -2198,7 +2198,7 @@ function setPromotionEntryMode(mode) {
     var hasGame = c.players && c.players.length === 4;
 
     out += '<div class="court" data-court="' + i + '">';
-    out += '<h3>' + gCL(i) + ' <span class="mode-badge">' + pLaneLabel(c.track || 'seed') + '</span></h3>';
+    out += '<h3>' + escHtml(gCL(i)) + ' <span class="mode-badge">' + escHtml(pLaneLabel(c.track || 'seed')) + '</span></h3>';
 
     out += '<div class="badminton-court">';
     out += courtLines;
@@ -2309,7 +2309,7 @@ function setPromotionEntryMode(mode) {
           var pc = P.playCount[n] || {};
           var removed = !pc.isActive;
           html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + escHtml(n) + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong>' +
               (removed ? '<span class="removal-info">Removed from queue</span>' : '') +

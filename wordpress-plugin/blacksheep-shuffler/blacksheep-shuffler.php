@@ -47,7 +47,7 @@ $asset_url = trailingslashit( BSBS_PLUGIN_URL . 'assets' );
 ob_start();
 include BSBS_PLUGIN_PATH . 'templates/app-template.php';
 
-return (string) ob_get_clean();
+return ob_get_clean() ?: '';
 }
 
 add_shortcode( 'blacksheep_shuffler', 'bsbs_render_shortcode' );
