@@ -50,6 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function norm(n) { return (n || '').trim().toLowerCase(); }
+  function fmtLocalDateTime(ts) {
+    if (!ts) return 'N/A';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleString();
+  }
 
   function shuf(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -2246,10 +2252,21 @@ function setPromotionEntryMode(mode) {
       var tA = (m.teamA || []).join(' & ');
       var tB = (m.teamB || []).join(' & ');
       var wn = m.winner === 'A' ? tA : tB;
+      var startedAt = fmtLocalDateTime(m.startTime);
+      var completedAt = fmtLocalDateTime(m.endTime);
       return '<div class="history-item">' +
-        '<strong>' + (m.courtName || ('Court ' + m.court)) + '</strong><br>' +
-        tA + ' vs ' + tB + '<br>' +
-        'Winner: <strong>' + wn + '</strong>' +
+        '<div class="history-main">' +
+          '<span class="history-court-name">' + (m.courtName || ('Court ' + m.court)) + '</span>' +
+          '<span class="history-matchup">' + tA + ' <span class="history-vs">vs</span> ' + tB + '</span>' +
+        '</div>' +
+        '<div class="history-winner-block">' +
+          '<span class="history-label">Winner</span>' +
+          '<strong class="history-winner-name">' + wn + '</strong>' +
+        '</div>' +
+        '<div class="history-times">' +
+          '<span>Started: ' + startedAt + '</span>' +
+          '<span>Completed: ' + completedAt + '</span>' +
+        '</div>' +
       '</div>';
     }).join('');
   }
@@ -2274,11 +2291,12 @@ function setPromotionEntryMode(mode) {
         promoStatsPlayers.forEach(function(n) {
           var pc = P.playCount[n] || {};
           var removed = !pc.isActive;
+          var removalText = removed ? 'Removed from queue at ' + fmtLocalDateTime(pc.removalTimestamp) : '';
           html += '<div class="stat-row">' +
             '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong>' +
-              (removed ? '<span class="removal-info">Removed from queue</span>' : '') +
+              (removed ? '<span class="removal-info">' + removalText + '</span>' : '') +
             '</div>' +
           '</div>';
         });
@@ -2299,11 +2317,12 @@ function setPromotionEntryMode(mode) {
         allStatsPlayers.forEach(function(n) {
           var pc2 = S.playCount[n] || {};
           var removed = !pc2.isActive;
+          var removalText2 = removed ? 'Removed from session at ' + fmtLocalDateTime(pc2.removalTimestamp) : '';
           html += '<div class="stat-row">' +
             '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L</strong>' +
-              (removed ? '<span class="removal-info">Removed from session</span>' : '') +
+              (removed ? '<span class="removal-info">' + removalText2 + '</span>' : '') +
             '</div>' +
           '</div>';
         });

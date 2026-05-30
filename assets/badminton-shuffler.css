@@ -379,12 +379,16 @@
   margin-bottom:.4rem;
   border-bottom:3px solid #59e8ff;
   padding-bottom:.3rem;
+  color:#ffe066;
 }
 #bds-app-wrapper .waiting-list .empty-state{
   border:3px dashed #59e8ff;
   background:transparent;
   padding:.9rem .6rem;
 }
+#bds-app-wrapper .waiting-list .empty-state p{color:#ffe066}
+#bds-app-wrapper.dark-mode .waiting-list h3,
+#bds-app-wrapper.dark-mode .waiting-list .empty-state p{color:#fff4cf}
 
 /* Modals */
 #bds-app-wrapper .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:10000;display:none;align-items:flex-end}
@@ -423,7 +427,15 @@
 #bds-app-wrapper .hidden{display:none!important}
 
 #bds-app-wrapper .stat-row,.history-item{display:flex;justify-content:space-between;align-items:center;padding:.35rem .15rem;border-bottom:2px solid var(--bds-border);gap:.5rem}
-#bds-app-wrapper .history-item{flex-wrap:wrap}
+#bds-app-wrapper .history-item{flex-wrap:wrap;align-items:flex-start;padding:.45rem .15rem}
+#bds-app-wrapper .history-main{flex:1 1 56%;min-width:180px}
+#bds-app-wrapper .history-court-name{display:block;color:var(--bds-primary);margin-bottom:.1rem}
+#bds-app-wrapper .history-matchup{display:block;word-break:break-word}
+#bds-app-wrapper .history-vs{opacity:.75}
+#bds-app-wrapper .history-winner-block{flex:0 0 28%;min-width:120px;display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:.1rem}
+#bds-app-wrapper .history-label{font-size:.5rem;color:var(--bds-text-light);text-transform:uppercase}
+#bds-app-wrapper .history-winner-name{word-break:break-word;max-width:100%}
+#bds-app-wrapper .history-times{flex:1 1 100%;display:flex;flex-direction:column;gap:.05rem;font-size:.52rem;color:var(--bds-text-light)}
 #bds-app-wrapper .stat-row:last-child,.history-item:last-child{border-bottom:none}
 #bds-app-wrapper .stat-player-name.removed{text-decoration:line-through;color:var(--bds-text-light)}
 #bds-app-wrapper .stat-text{display:flex;flex-direction:column;align-items:flex-end;font-size:.62rem;text-align:right}
@@ -626,3 +638,5 @@
 
   #bds-app-wrapper .court-action-buttons{grid-template-columns:1fr 1fr}
   #bds-app-wrapper .winner-selection{grid-template-columns:1fr 1fr}
+  #bds-app-wrapper .history-main,#bds-app-wrapper .history-winner-block{flex:1 1 100%;min-width:0;text-align:left;align-items:flex-start}
+}

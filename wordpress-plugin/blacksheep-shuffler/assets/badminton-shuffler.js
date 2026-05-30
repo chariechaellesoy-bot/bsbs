@@ -55,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
     });
   }
+  function fmtLocalDateTime(ts) {
+    if (!ts) return 'N/A';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleString();
+  }
 
   function shuf(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -2280,10 +2286,21 @@ function setPromotionEntryMode(mode) {
       var tB = escHtml((m.teamB || []).join(' & '));
       var wn = m.winner === 'A' ? tA : tB;
       var courtName = escHtml(m.courtName || ('Court ' + m.court));
+      var startedAt = escHtml(fmtLocalDateTime(m.startTime));
+      var completedAt = escHtml(fmtLocalDateTime(m.endTime));
       return '<div class="history-item">' +
-        '<strong>' + courtName + '</strong><br>' +
-        tA + ' vs ' + tB + '<br>' +
-        'Winner: <strong>' + wn + '</strong>' +
+        '<div class="history-main">' +
+          '<span class="history-court-name">' + courtName + '</span>' +
+          '<span class="history-matchup">' + tA + ' <span class="history-vs">vs</span> ' + tB + '</span>' +
+        '</div>' +
+        '<div class="history-winner-block">' +
+          '<span class="history-label">Winner</span>' +
+          '<strong class="history-winner-name">' + wn + '</strong>' +
+        '</div>' +
+        '<div class="history-times">' +
+          '<span>Started: ' + startedAt + '</span>' +
+          '<span>Completed: ' + completedAt + '</span>' +
+        '</div>' +
       '</div>';
     }).join('');
   }
@@ -2344,7 +2361,8 @@ function setPromotionEntryMode(mode) {
         if (removed) {
           var removal = document.createElement('span');
           removal.className = 'removal-info';
-          removal.textContent = isPromotion ? 'Removed from queue' : 'Removed from session';
+          var removalPrefix = isPromotion ? 'Removed from queue at ' : 'Removed from session at ';
+          removal.textContent = removalPrefix + fmtLocalDateTime(pc.removalTimestamp);
           statText.appendChild(removal);
         }
 
