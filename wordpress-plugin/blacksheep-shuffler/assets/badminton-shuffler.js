@@ -2382,11 +2382,13 @@ function setPromotionEntryMode(mode) {
           var pc = P.playCount[n] || {};
           var removed = !pc.isActive;
           var removalText = removed ? 'Removed from queue at ' + fmtLocalDateTime(pc.removalTimestamp) : '';
+          var safeName = escHtml(n);
+          var safeRemovalText = escHtml(removalText);
           html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + safeName + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc.games || 0) + ' Games</strong>' +
-              (removed ? '<span class="removal-info">' + removalText + '</span>' : '') +
+              (removed ? '<span class="removal-info">' + safeRemovalText + '</span>' : '') +
             '</div>' +
           '</div>';
         });
@@ -2408,11 +2410,13 @@ function setPromotionEntryMode(mode) {
           var pc2 = S.playCount[n] || {};
           var removed = !pc2.isActive;
           var removalText2 = removed ? 'Removed from session at ' + fmtLocalDateTime(pc2.removalTimestamp) : '';
+          var safeName2 = escHtml(n);
+          var safeRemovalText2 = escHtml(removalText2);
           html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + safeName2 + '</span>' +
             '<div class="stat-text">' +
               '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc2.games || 0) + ' Games</strong>' +
-              (removed ? '<span class="removal-info">' + removalText2 + '</span>' : '') +
+              (removed ? '<span class="removal-info">' + safeRemovalText2 + '</span>' : '') +
             '</div>' +
           '</div>';
         });
