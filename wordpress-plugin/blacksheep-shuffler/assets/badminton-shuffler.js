@@ -2291,61 +2291,71 @@ function setPromotionEntryMode(mode) {
   function rPS() {
     var box = qs('#player-stats-content');
     if (!box) return;
+    box.innerHTML = '';
 
-    var html = '';
-    if (MODE === 'promotion') {
-      html += '<h4>Promotion Stats</h4>';
-      var promoStatsPlayers = P.allPlayersList.filter(function(n) { return !!P.playCount[n]; });
-      if (!promoStatsPlayers.length) html += rES('📊', 'No players.');
-      else {
-        promoStatsPlayers.sort(function(a, b) {
-          var aActive = !!(P.playCount[a] && P.playCount[a].isActive);
-          var bActive = !!(P.playCount[b] && P.playCount[b].isActive);
-          if (aActive !== bActive) return aActive ? -1 : 1;
-          return a.localeCompare(b);
-        });
-        html += '<div class="stats-list">';
-        promoStatsPlayers.forEach(function(n) {
-          var pc = P.playCount[n] || {};
-          var removed = !pc.isActive;
-          html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + escHtml(n) + '</span>' +
-            '<div class="stat-text">' +
-              '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong>' +
-              (removed ? '<span class="removal-info">Removed from queue</span>' : '') +
-            '</div>' +
-          '</div>';
-        });
-        html += '</div>';
-      }
+    var title = document.createElement('h4');
+    var isPromotion = MODE === 'promotion';
+    title.textContent = isPromotion ? 'Promotion Stats' : 'Session Stats';
+    box.appendChild(title);
+
+    var sourcePlayers = isPromotion
+      ? P.allPlayersList.filter(function(n) { return !!P.playCount[n]; })
+      : S.allPlayersList.filter(function(n) { return !!S.playCount[n]; });
+    var playCount = isPromotion ? P.playCount : S.playCount;
+
+    if (!sourcePlayers.length) {
+      box.insertAdjacentHTML('beforeend', rES('📊', 'No players.'));
     } else {
-      html += '<h4>Session Stats</h4>';
-      var allStatsPlayers = S.allPlayersList.filter(function(n) { return !!S.playCount[n]; });
-      if (!allStatsPlayers.length) html += rES('📊', 'No players.');
-      else {
-        allStatsPlayers.sort(function(a, b) {
-          var aActive = !!(S.playCount[a] && S.playCount[a].isActive);
-          var bActive = !!(S.playCount[b] && S.playCount[b].isActive);
-          if (aActive !== bActive) return aActive ? -1 : 1;
-          return a.localeCompare(b);
-        });
-        html += '<div class="stats-list">';
-        allStatsPlayers.forEach(function(n) {
-          var pc2 = S.playCount[n] || {};
-          var removed = !pc2.isActive;
-          html += '<div class="stat-row">' +
-            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + escHtml(n) + '</span>' +
-            '<div class="stat-text">' +
-              '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L</strong>' +
-              (removed ? '<span class="removal-info">Removed from session</span>' : '') +
-            '</div>' +
-          '</div>';
-        });
-        html += '</div>';
-      }
+      sourcePlayers.sort(function(a, b) {
+        var aActive = !!(playCount[a] && playCount[a].isActive);
+        var bActive = !!(playCount[b] && playCount[b].isActive);
+        if (aActive !== bActive) return aActive ? -1 : 1;
+        return a.localeCompare(b);
+      });
+
+      var statsList = document.createElement('div');
+      statsList.className = 'stats-list';
+
+      sourcePlayers.forEach(function(n) {
+        var pc = playCount[n] || {};
+        var removed = !pc.isActive;
+
+        var row = document.createElement('div');
+        row.className = 'stat-row';
+
+        var playerName = document.createElement('span');
+        playerName.className = 'stat-player-name' + (removed ? ' removed' : '');
+        playerName.textContent = n;
+
+        var statText = document.createElement('div');
+        statText.className = 'stat-text';
+
+        var strong = document.createElement('strong');
+        strong.textContent = (pc.wins || 0) + ' W ';
+
+        var sep = document.createElement('span');
+        sep.className = 'stat-sep';
+        sep.textContent = '|';
+        strong.appendChild(sep);
+        strong.appendChild(document.createTextNode(' ' + (pc.losses || 0) + ' L'));
+
+        statText.appendChild(strong);
+
+        if (removed) {
+          var removal = document.createElement('span');
+          removal.className = 'removal-info';
+          removal.textContent = isPromotion ? 'Removed from queue' : 'Removed from session';
+          statText.appendChild(removal);
+        }
+
+        row.appendChild(playerName);
+        row.appendChild(statText);
+        statsList.appendChild(row);
+      });
+
+      box.appendChild(statsList);
     }
 
-    box.innerHTML = html;
     var d = qs('#stats-date');
     if (d) d.textContent = new Date().toLocaleString();
   }
