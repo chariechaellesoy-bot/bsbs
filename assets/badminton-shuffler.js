@@ -629,6 +629,68 @@ var PROMOTION_ENTRY_MODE = 'single';
     P.matchHistory.forEach(function(m) { uPSP(m.teamA, m.teamB, 1); });
     P.courts.forEach(function(c) { if (c.players && c.players.length === 4) uPSP(c.teamA, c.teamB, 1); });
   }
+
+  function reconcileSessionState() {
+    var onCourt = {};
+    S.courts.forEach(function(c) {
+      (c && c.players ? c.players : []).forEach(function(n) { onCourt[n] = true; });
+    });
+    S.restingPlayers = S.restingPlayers.filter(function(n, i, arr) {
+      return !onCourt[n] && arr.indexOf(n) === i;
+    });
+    S.allPlayersList.forEach(function(n) {
+      var pc = S.playCount[n];
+      if (!pc || !pc.isActive || onCourt[n] || S.restingPlayers.indexOf(n) !== -1) return;
+      S.restingPlayers.push(n);
+    });
+  }
+
+  function reconcilePromotionState() {
+    var onCourt = {};
+    P.courts.forEach(function(c) {
+      (c && c.players ? c.players : []).forEach(function(n) { onCourt[n] = true; });
+    });
+
+    var laneMap = {};
+    function putInLane(name, lane) {
+      laneMap[name] = lane || laneMap[name] || 'seed';
+    }
+    P.seedPool.forEach(function(n) { putInLane(n, 'seed'); });
+    P.winnersPool.forEach(function(n) { putInLane(n, 'winners'); });
+    P.losersPool.forEach(function(n) { putInLane(n, 'losers'); });
+
+    P.seedPool = [];
+    P.winnersPool = [];
+    P.losersPool = [];
+    P.allPlayersList.forEach(function(n) {
+      var pc = P.playCount[n];
+      if (!pc || !pc.isActive || onCourt[n]) return;
+      var state = P.playerState[n] || {};
+      var lane = laneMap[n] || state.lastKnownLane || state.lane || 'seed';
+      if (lane === 'winners') P.winnersPool.push(n);
+      else if (lane === 'losers') P.losersPool.push(n);
+      else P.seedPool.push(n);
+    });
+
+    P.allPlayersList.forEach(function(n) {
+      if (!P.playerState[n]) P.playerState[n] = { lane: 'seed', lastKnownLane: 'seed', isActive: !!(P.playCount[n] && P.playCount[n].isActive) };
+      if (onCourt[n]) P.playerState[n].lane = 'oncourt';
+    });
+  }
+
+  function sessionNameExists(name, excludeName) {
+    var ln = norm(name);
+    return S.allPlayersList.some(function(existing) {
+      return existing !== excludeName && norm(existing) === ln;
+    });
+  }
+
+  function promotionNameExists(name, excludeName) {
+    var ln = norm(name);
+    return P.allPlayersList.some(function(existing) {
+      return existing !== excludeName && norm(existing) === ln;
+    });
+  }
   /* ── Matchmaking ───────────────────────────────────────── */
   function getComb(a, sz) {
     var result = [];
@@ -1543,7 +1605,7 @@ function setPromotionEntryMode(mode) {
     var n = (qs('#mgmtNewPlayerName').value || '').trim();
     var sk = qs('#mgmtNewPlayerSkill').value;
     if (!n) { notify('Enter a player name.', 'error'); return; }
-    if (S.playCount[n]) { notify('Player already exists.', 'error'); return; }
+    if (sessionNameExists(n)) { notify('Player already exists.', 'error'); return; }
 
     S.allPlayersList.push(n);
     S.playerMeta[norm(n)] = { name: n, skill: sk, isActive: true };
@@ -1589,7 +1651,7 @@ function setPromotionEntryMode(mode) {
     var newName = (qs('#renamePlayerInput').value || '').trim();
     if (!oldName || !newName) { notify('Select a player and enter a new name.', 'error'); return; }
     if (oldName === newName) { notify('New name must be different.', 'error'); return; }
-    if (S.playCount[newName]) { notify('A player with that name already exists.', 'error'); return; }
+    if (sessionNameExists(newName, oldName)) { notify('A player with that name already exists.', 'error'); return; }
 
     var oldNorm = norm(oldName), newNorm = norm(newName);
 
@@ -1753,7 +1815,7 @@ function setPromotionEntryMode(mode) {
   function pAddMid() {
     var n = (qs('#pMgmtNewPlayerName').value || '').trim();
     if (!n) { notify('Enter a player name.', 'error'); return; }
-    if (P.playCount[n]) { notify('Player already exists.', 'error'); return; }
+    if (promotionNameExists(n)) { notify('Player already exists.', 'error'); return; }
 
     P.allPlayersList.push(n);
     P.playCount[n] = {
@@ -1774,7 +1836,7 @@ function setPromotionEntryMode(mode) {
     var newName = (qs('#pRenamePlayerInput').value || '').trim();
     if (!oldName || !newName) { notify('Select a player and enter a new name.', 'error'); return; }
     if (oldName === newName) { notify('New name must be different.', 'error'); return; }
-    if (P.playCount[newName]) { notify('A player with that name already exists.', 'error'); return; }
+    if (promotionNameExists(newName, oldName)) { notify('A player with that name already exists.', 'error'); return; }
 
     P.allPlayersList = P.allPlayersList.map(function(n) { return n === oldName ? newName : n; });
     P.seedPool = P.seedPool.map(function(n) { return n === oldName ? newName : n; });
@@ -2323,7 +2385,7 @@ function setPromotionEntryMode(mode) {
           html += '<div class="stat-row">' +
             '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
             '<div class="stat-text">' +
-              '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L</strong>' +
+              '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc.games || 0) + ' Games</strong>' +
               (removed ? '<span class="removal-info">' + removalText + '</span>' : '') +
             '</div>' +
           '</div>';
@@ -2349,7 +2411,7 @@ function setPromotionEntryMode(mode) {
           html += '<div class="stat-row">' +
             '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
             '<div class="stat-text">' +
-              '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L</strong>' +
+              '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc2.games || 0) + ' Games</strong>' +
               (removed ? '<span class="removal-info">' + removalText2 + '</span>' : '') +
             '</div>' +
           '</div>';
@@ -2522,6 +2584,8 @@ function rAbout(modeOverride) {
   /* ── Unified Render ────────────────────────────────────── */
   function rAll() {
     if (!MODE) return;
+    if (MODE === 'session') reconcileSessionState();
+    else if (MODE === 'promotion') reconcilePromotionState();
 
     if (MODE === 'session') rSessionCourts();
     else if (MODE === 'promotion') rPromotionCourts();

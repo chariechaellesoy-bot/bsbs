@@ -518,15 +518,7 @@ var PROMOTION_ENTRY_MODE = 'single';
     adminState.rvbList.forEach(function(name) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      var meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = name;
-      var btn = document.createElement('button');
-      btn.className = 'remove-btn';
-      btn.setAttribute('data-rvb-remove', name);
-      btn.textContent = 'Remove';
-      r.appendChild(meta);
-      r.appendChild(btn);
+      r.innerHTML = '<div class="meta">' + name + '</div><button class="remove-btn" data-rvb-remove="' + name + '">Remove</button>';
       el.appendChild(r);
     });
   }
@@ -636,6 +628,68 @@ var PROMOTION_ENTRY_MODE = 'single';
     initPP(P.allPlayersList);
     P.matchHistory.forEach(function(m) { uPSP(m.teamA, m.teamB, 1); });
     P.courts.forEach(function(c) { if (c.players && c.players.length === 4) uPSP(c.teamA, c.teamB, 1); });
+  }
+
+  function reconcileSessionState() {
+    var onCourt = {};
+    S.courts.forEach(function(c) {
+      (c && c.players ? c.players : []).forEach(function(n) { onCourt[n] = true; });
+    });
+    S.restingPlayers = S.restingPlayers.filter(function(n, i, arr) {
+      return !onCourt[n] && arr.indexOf(n) === i;
+    });
+    S.allPlayersList.forEach(function(n) {
+      var pc = S.playCount[n];
+      if (!pc || !pc.isActive || onCourt[n] || S.restingPlayers.indexOf(n) !== -1) return;
+      S.restingPlayers.push(n);
+    });
+  }
+
+  function reconcilePromotionState() {
+    var onCourt = {};
+    P.courts.forEach(function(c) {
+      (c && c.players ? c.players : []).forEach(function(n) { onCourt[n] = true; });
+    });
+
+    var laneMap = {};
+    function putInLane(name, lane) {
+      laneMap[name] = lane || laneMap[name] || 'seed';
+    }
+    P.seedPool.forEach(function(n) { putInLane(n, 'seed'); });
+    P.winnersPool.forEach(function(n) { putInLane(n, 'winners'); });
+    P.losersPool.forEach(function(n) { putInLane(n, 'losers'); });
+
+    P.seedPool = [];
+    P.winnersPool = [];
+    P.losersPool = [];
+    P.allPlayersList.forEach(function(n) {
+      var pc = P.playCount[n];
+      if (!pc || !pc.isActive || onCourt[n]) return;
+      var state = P.playerState[n] || {};
+      var lane = laneMap[n] || state.lastKnownLane || state.lane || 'seed';
+      if (lane === 'winners') P.winnersPool.push(n);
+      else if (lane === 'losers') P.losersPool.push(n);
+      else P.seedPool.push(n);
+    });
+
+    P.allPlayersList.forEach(function(n) {
+      if (!P.playerState[n]) P.playerState[n] = { lane: 'seed', lastKnownLane: 'seed', isActive: !!(P.playCount[n] && P.playCount[n].isActive) };
+      if (onCourt[n]) P.playerState[n].lane = 'oncourt';
+    });
+  }
+
+  function sessionNameExists(name, excludeName) {
+    var ln = norm(name);
+    return S.allPlayersList.some(function(existing) {
+      return existing !== excludeName && norm(existing) === ln;
+    });
+  }
+
+  function promotionNameExists(name, excludeName) {
+    var ln = norm(name);
+    return P.allPlayersList.some(function(existing) {
+      return existing !== excludeName && norm(existing) === ln;
+    });
   }
   /* ── Matchmaking ───────────────────────────────────────── */
   function getComb(a, sz) {
@@ -1395,19 +1449,7 @@ function setPromotionEntryMode(mode) {
     else PP.forEach(function(p, i) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      var meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = p.name + ' ';
-      var skill = document.createElement('span');
-      skill.className = 'player-skill';
-      skill.textContent = p.skill;
-      meta.appendChild(skill);
-      var btn = document.createElement('button');
-      btn.className = 'remove-btn';
-      btn.setAttribute('data-remove-index', i);
-      btn.textContent = 'Remove';
-      r.appendChild(meta);
-      r.appendChild(btn);
+      r.innerHTML = '<div class="meta">' + p.name + ' <span class="player-skill">' + p.skill + '</span></div><button class="remove-btn" data-remove-index="' + i + '">Remove</button>';
       l.appendChild(r);
     });
     valStart();
@@ -1536,15 +1578,7 @@ function setPromotionEntryMode(mode) {
     else PR.forEach(function(p, i) {
       var r = document.createElement('div');
       r.className = 'pending-item';
-      var meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = p;
-      var btn = document.createElement('button');
-      btn.className = 'remove-btn';
-      btn.setAttribute('data-premove-index', i);
-      btn.textContent = 'Remove';
-      r.appendChild(meta);
-      r.appendChild(btn);
+      r.innerHTML = '<div class="meta">' + p + '</div><button class="remove-btn" data-premove-index="' + i + '">Remove</button>';
       l.appendChild(r);
     });
     pValStart();
@@ -1571,7 +1605,7 @@ function setPromotionEntryMode(mode) {
     var n = (qs('#mgmtNewPlayerName').value || '').trim();
     var sk = qs('#mgmtNewPlayerSkill').value;
     if (!n) { notify('Enter a player name.', 'error'); return; }
-    if (S.playCount[n]) { notify('Player already exists.', 'error'); return; }
+    if (sessionNameExists(n)) { notify('Player already exists.', 'error'); return; }
 
     S.allPlayersList.push(n);
     S.playerMeta[norm(n)] = { name: n, skill: sk, isActive: true };
@@ -1617,7 +1651,7 @@ function setPromotionEntryMode(mode) {
     var newName = (qs('#renamePlayerInput').value || '').trim();
     if (!oldName || !newName) { notify('Select a player and enter a new name.', 'error'); return; }
     if (oldName === newName) { notify('New name must be different.', 'error'); return; }
-    if (S.playCount[newName]) { notify('A player with that name already exists.', 'error'); return; }
+    if (sessionNameExists(newName, oldName)) { notify('A player with that name already exists.', 'error'); return; }
 
     var oldNorm = norm(oldName), newNorm = norm(newName);
 
@@ -1781,7 +1815,7 @@ function setPromotionEntryMode(mode) {
   function pAddMid() {
     var n = (qs('#pMgmtNewPlayerName').value || '').trim();
     if (!n) { notify('Enter a player name.', 'error'); return; }
-    if (P.playCount[n]) { notify('Player already exists.', 'error'); return; }
+    if (promotionNameExists(n)) { notify('Player already exists.', 'error'); return; }
 
     P.allPlayersList.push(n);
     P.playCount[n] = {
@@ -1802,7 +1836,7 @@ function setPromotionEntryMode(mode) {
     var newName = (qs('#pRenamePlayerInput').value || '').trim();
     if (!oldName || !newName) { notify('Select a player and enter a new name.', 'error'); return; }
     if (oldName === newName) { notify('New name must be different.', 'error'); return; }
-    if (P.playCount[newName]) { notify('A player with that name already exists.', 'error'); return; }
+    if (promotionNameExists(newName, oldName)) { notify('A player with that name already exists.', 'error'); return; }
 
     P.allPlayersList = P.allPlayersList.map(function(n) { return n === oldName ? newName : n; });
     P.seedPool = P.seedPool.map(function(n) { return n === oldName ? newName : n; });
@@ -2136,8 +2170,8 @@ function setPromotionEntryMode(mode) {
 
   function pb(name, teamClass) {
     return '<div class="player-box ' + teamClass + '">' +
-      '<span>' + escHtml(name) + '</span>' +
-      '<span class="player-skill">' + escHtml(gSkill(name) + (hasHotStreak(name) ? ' 🔥' : '')) + '</span>' +
+      '<span>' + name + '</span>' +
+      '<span class="player-skill">' + pLbl(name).replace(/<\/?[^>]+(>|$)/g, '') + '</span>' +
     '</div>';
   }
 
@@ -2145,7 +2179,7 @@ function setPromotionEntryMode(mode) {
     var hasGame = c.players && c.players.length === 4;
 
     out += '<div class="court" data-court="' + i + '">';
-    out += '<h3>' + escHtml(gCL(i)) + (c.isTemp ? ' <span class="mode-badge">Custom</span>' : '') + '</h3>';
+    out += '<h3>' + gCL(i) + (c.isTemp ? ' <span class="mode-badge">Custom</span>' : '') + '</h3>';
 
     out += '<div class="badminton-court">';
     out += courtLines;
@@ -2196,7 +2230,7 @@ function setPromotionEntryMode(mode) {
   } else {
     out += '<div class="player-tag-container">';
     waiting.forEach(function(n) {
-      out += '<div class="player-tag">' + pDot(n) + escHtml(n) + ' ' + pLbl(n) + '</div>';
+      out += '<div class="player-tag">' + pDot(n) + n + ' ' + pLbl(n) + '</div>';
     });
     out += '</div>';
   }
@@ -2215,7 +2249,7 @@ function setPromotionEntryMode(mode) {
 
   function pBox(name, teamClass) {
   return '<div class="player-box ' + teamClass + '">' +
-    '<span>' + escHtml(name) + '</span>' +
+    '<span>' + name + '</span>' +
   '</div>';
 }
 
@@ -2224,7 +2258,7 @@ function setPromotionEntryMode(mode) {
 
     var lane = (c.track === 'winners' || c.track === 'losers') ? c.track : 'seed';
     out += '<div class="court" data-court="' + i + '">';
-    out += '<h3>' + escHtml(gCL(i)) + ' <span class="mode-badge lane-badge lane-' + lane + '">' + escHtml(pLaneLabel(lane)) + '</span></h3>';
+    out += '<h3>' + gCL(i) + ' <span class="mode-badge lane-badge lane-' + lane + '">' + pLaneLabel(lane) + '</span></h3>';
 
     out += '<div class="badminton-court">';
     out += courtLines;
@@ -2273,7 +2307,7 @@ function setPromotionEntryMode(mode) {
     } else {
       s += '<div class="player-tag-container">';
       arr.forEach(function(n) {
-        s += '<div class="player-tag">' + escHtml(n) + '</div>';
+        s += '<div class="player-tag">' + n + '</div>';
       });
       s += '</div>';
     }
@@ -2330,72 +2364,63 @@ function setPromotionEntryMode(mode) {
   function rPS() {
     var box = qs('#player-stats-content');
     if (!box) return;
-    box.innerHTML = '';
 
-    var title = document.createElement('h4');
-    var isPromotion = MODE === 'promotion';
-    title.textContent = isPromotion ? 'Promotion Stats' : 'Session Stats';
-    box.appendChild(title);
-
-    var sourcePlayers = isPromotion
-      ? P.allPlayersList.filter(function(n) { return !!P.playCount[n]; })
-      : S.allPlayersList.filter(function(n) { return !!S.playCount[n]; });
-    var playCount = isPromotion ? P.playCount : S.playCount;
-
-    if (!sourcePlayers.length) {
-      box.insertAdjacentHTML('beforeend', rES('📊', 'No players.'));
+    var html = '';
+    if (MODE === 'promotion') {
+      html += '<h4>Promotion Stats</h4>';
+      var promoStatsPlayers = P.allPlayersList.filter(function(n) { return !!P.playCount[n]; });
+      if (!promoStatsPlayers.length) html += rES('📊', 'No players.');
+      else {
+        promoStatsPlayers.sort(function(a, b) {
+          var aActive = !!(P.playCount[a] && P.playCount[a].isActive);
+          var bActive = !!(P.playCount[b] && P.playCount[b].isActive);
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return a.localeCompare(b);
+        });
+        html += '<div class="stats-list">';
+        promoStatsPlayers.forEach(function(n) {
+          var pc = P.playCount[n] || {};
+          var removed = !pc.isActive;
+          var removalText = removed ? 'Removed from queue at ' + fmtLocalDateTime(pc.removalTimestamp) : '';
+          html += '<div class="stat-row">' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<div class="stat-text">' +
+              '<strong>' + (pc.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc.games || 0) + ' Games</strong>' +
+              (removed ? '<span class="removal-info">' + removalText + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
     } else {
-      sourcePlayers.sort(function(a, b) {
-        var aActive = !!(playCount[a] && playCount[a].isActive);
-        var bActive = !!(playCount[b] && playCount[b].isActive);
-        if (aActive !== bActive) return aActive ? -1 : 1;
-        return a.localeCompare(b);
-      });
-
-      var statsList = document.createElement('div');
-      statsList.className = 'stats-list';
-
-      sourcePlayers.forEach(function(n) {
-        var pc = playCount[n] || {};
-        var removed = !pc.isActive;
-
-        var row = document.createElement('div');
-        row.className = 'stat-row';
-
-        var playerName = document.createElement('span');
-        playerName.className = 'stat-player-name' + (removed ? ' removed' : '');
-        playerName.textContent = n;
-
-        var statText = document.createElement('div');
-        statText.className = 'stat-text';
-
-        var strong = document.createElement('strong');
-        strong.textContent = (pc.wins || 0) + ' W ';
-
-        var sep = document.createElement('span');
-        sep.className = 'stat-sep';
-        sep.textContent = '|';
-        strong.appendChild(sep);
-        strong.appendChild(document.createTextNode(' ' + (pc.losses || 0) + ' L'));
-
-        statText.appendChild(strong);
-
-        if (removed) {
-          var removal = document.createElement('span');
-          removal.className = 'removal-info';
-          var removalPrefix = isPromotion ? 'Removed from queue at ' : 'Removed from session at ';
-          removal.textContent = removalPrefix + fmtLocalDateTime(pc.removalTimestamp);
-          statText.appendChild(removal);
-        }
-
-        row.appendChild(playerName);
-        row.appendChild(statText);
-        statsList.appendChild(row);
-      });
-
-      box.appendChild(statsList);
+      html += '<h4>Session Stats</h4>';
+      var allStatsPlayers = S.allPlayersList.filter(function(n) { return !!S.playCount[n]; });
+      if (!allStatsPlayers.length) html += rES('📊', 'No players.');
+      else {
+        allStatsPlayers.sort(function(a, b) {
+          var aActive = !!(S.playCount[a] && S.playCount[a].isActive);
+          var bActive = !!(S.playCount[b] && S.playCount[b].isActive);
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return a.localeCompare(b);
+        });
+        html += '<div class="stats-list">';
+        allStatsPlayers.forEach(function(n) {
+          var pc2 = S.playCount[n] || {};
+          var removed = !pc2.isActive;
+          var removalText2 = removed ? 'Removed from session at ' + fmtLocalDateTime(pc2.removalTimestamp) : '';
+          html += '<div class="stat-row">' +
+            '<span class="stat-player-name' + (removed ? ' removed' : '') + '">' + n + '</span>' +
+            '<div class="stat-text">' +
+              '<strong>' + (pc2.wins || 0) + ' W <span class="stat-sep">|</span> ' + (pc2.losses || 0) + ' L <span class="stat-sep">|</span> ' + (pc2.games || 0) + ' Games</strong>' +
+              (removed ? '<span class="removal-info">' + removalText2 + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
     }
 
+    box.innerHTML = html;
     var d = qs('#stats-date');
     if (d) d.textContent = new Date().toLocaleString();
   }
@@ -2559,6 +2584,8 @@ function rAbout(modeOverride) {
   /* ── Unified Render ────────────────────────────────────── */
   function rAll() {
     if (!MODE) return;
+    if (MODE === 'session') reconcileSessionState();
+    else if (MODE === 'promotion') reconcilePromotionState();
 
     if (MODE === 'session') rSessionCourts();
     else if (MODE === 'promotion') rPromotionCourts();
