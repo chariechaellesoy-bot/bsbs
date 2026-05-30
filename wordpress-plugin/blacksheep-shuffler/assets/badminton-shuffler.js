@@ -61,6 +61,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isNaN(d.getTime())) return 'N/A';
     return d.toLocaleString();
   }
+  function fmtGameDuration(startTs, endTs) {
+    if (!startTs || !endTs) return 'N/A';
+    var start = new Date(startTs);
+    var end = new Date(endTs);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'N/A';
+    var totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+    if (totalSeconds < 0) return 'N/A';
+
+    var hours = Math.floor(totalSeconds / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+    var parts = [];
+
+    if (hours) parts.push(hours + 'h');
+    if (hours || minutes) parts.push(minutes + 'm');
+    parts.push(seconds + 's');
+
+    return parts.join(' ');
+  }
 
   function shuf(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -2289,6 +2308,7 @@ function setPromotionEntryMode(mode) {
       var courtName = escHtml(m.courtName || ('Court ' + m.court));
       var startedAt = escHtml(fmtLocalDateTime(m.startTime));
       var completedAt = escHtml(fmtLocalDateTime(m.endTime));
+      var totalGameTime = escHtml(fmtGameDuration(m.startTime, m.endTime));
       return '<div class="history-item">' +
         '<div class="history-main">' +
           '<span class="history-court-name">' + courtName + '</span>' +
@@ -2301,6 +2321,7 @@ function setPromotionEntryMode(mode) {
         '<div class="history-times">' +
           '<span>Started: ' + startedAt + '</span>' +
           '<span>Completed: ' + completedAt + '</span>' +
+          '<span>Total Game Time: ' + totalGameTime + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
