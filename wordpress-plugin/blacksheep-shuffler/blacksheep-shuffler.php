@@ -3,7 +3,7 @@
  * Plugin Name: BlackSheep Shuffler
  * Plugin URI: https://github.com/chariechaellesoy-bot/bsbs
  * Description: WordPress plugin version of the BlackSheep Shuffler badminton app.
- * Version: 6.1.0
+ * Version: 6.1.1
  * Author: BlackSheep
  * License: GPL-2.0-or-later
  * Text Domain: blacksheep-shuffler
@@ -30,8 +30,8 @@ define( 'BSBS_PLUGIN_PATH', plugin_dir_path( BSBS_PLUGIN_FILE ) );
  */
 function bsbs_enqueue_assets() {
 wp_enqueue_style( 'bsbs-google-font', 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap', array(), null );
-wp_enqueue_style( 'bsbs-app-style', BSBS_PLUGIN_URL . 'assets/badminton-shuffler.css', array( 'bsbs-google-font' ), '6.1.0' );
-wp_enqueue_script( 'bsbs-app-script', BSBS_PLUGIN_URL . 'assets/badminton-shuffler.js', array(), '6.1.0', true );
+wp_enqueue_style( 'bsbs-app-style', BSBS_PLUGIN_URL . 'assets/badminton-shuffler.css', array( 'bsbs-google-font' ), '6.1.1' );
+wp_enqueue_script( 'bsbs-app-script', BSBS_PLUGIN_URL . 'assets/badminton-shuffler.js', array(), '6.1.1', true );
 }
 
 /**

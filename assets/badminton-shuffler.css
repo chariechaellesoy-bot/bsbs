@@ -151,6 +151,19 @@
   color:#f8f4e3;
   box-shadow:2px 2px 0 rgba(0,0,0,.55);
 }
+#bds-app-wrapper .court > h3 .lane-badge{
+  text-shadow:none;
+  background:#66d9ff !important;
+  color:#111 !important;
+}
+#bds-app-wrapper .court > h3 .lane-badge.lane-winners{
+  background:#7cfb7c !important;
+  color:#111 !important;
+}
+#bds-app-wrapper .court > h3 .lane-badge.lane-losers{
+  background:#ff5c8a !important;
+  color:#fff !important;
+}
 #bds-app-wrapper.dark-mode .court > h3 .mode-badge{
   background:#f6e79d;
   color:#2b1d0e;

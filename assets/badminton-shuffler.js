@@ -2170,8 +2170,9 @@ function setPromotionEntryMode(mode) {
   P.courts.forEach(function(c, i) {
     var hasGame = c.players && c.players.length === 4;
 
+    var lane = (c.track === 'winners' || c.track === 'losers') ? c.track : 'seed';
     out += '<div class="court" data-court="' + i + '">';
-    out += '<h3>' + gCL(i) + ' <span class="mode-badge">' + pLaneLabel(c.track || 'seed') + '</span></h3>';
+    out += '<h3>' + gCL(i) + ' <span class="mode-badge lane-badge lane-' + lane + '">' + pLaneLabel(lane) + '</span></h3>';
 
     out += '<div class="badminton-court">';
     out += courtLines;
