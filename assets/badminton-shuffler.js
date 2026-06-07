@@ -1786,6 +1786,7 @@ function setPromotionEntryMode(mode) {
 
     if (picks.length !== 4 || uniq.length !== 4) { notify('Select 4 unique players.', 'error'); return; }
     if ((S.tempCourts || []).length >= MAX_CUSTOM_GAMES) { notify('Maximum custom games reached.', 'error'); return; }
+    if (picks.some(iTL)) { notify('Selected player is already queued in another custom game.', 'error'); return; }
     if (isNaN(after) || after < 0) after = 0;
 
     var tc = {
@@ -1979,6 +1980,7 @@ function setPromotionEntryMode(mode) {
 
     if (picks.length !== 4 || uniq.length !== 4) { notify('Select 4 unique players.', 'error'); return; }
     if ((P.tempCourts || []).length >= MAX_CUSTOM_GAMES) { notify('Maximum custom games reached.', 'error'); return; }
+    if (picks.some(pITL)) { notify('Selected player is already queued in another custom game.', 'error'); return; }
     if (isNaN(after) || after < 0) after = 0;
 
     var waiting = pWaitingPool();
