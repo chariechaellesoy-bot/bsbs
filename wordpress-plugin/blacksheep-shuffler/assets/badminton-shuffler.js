@@ -635,6 +635,19 @@ var PROMOTION_ENTRY_MODE = 'single';
     S.courts.forEach(function(c) {
       (c && c.players ? c.players : []).forEach(function(n) { onCourt[n] = true; });
     });
+    var allKnown = (S.allPlayersList || []).slice();
+    Object.keys(S.playCount || {}).forEach(function(n) {
+      if (allKnown.indexOf(n) === -1) allKnown.push(n);
+    });
+    Object.keys(onCourt).forEach(function(n) {
+      if (allKnown.indexOf(n) === -1) allKnown.push(n);
+    });
+    (S.restingPlayers || []).forEach(function(n) {
+      if (allKnown.indexOf(n) === -1) allKnown.push(n);
+    });
+    S.allPlayersList = allKnown.filter(function(n, i, arr) {
+      return !!n && arr.indexOf(n) === i;
+    });
     S.restingPlayers = S.restingPlayers.filter(function(n, i, arr) {
       return !onCourt[n] && arr.indexOf(n) === i;
     });
