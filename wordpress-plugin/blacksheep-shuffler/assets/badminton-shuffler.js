@@ -2451,8 +2451,9 @@ function rAbout(modeOverride) {
       '</ul>';
   }
 
+  var appVersion = (typeof window !== 'undefined' && window.BSBS_APP_VERSION) ? window.BSBS_APP_VERSION : '6.1.0';
   var html = '';
-  html += '<h3>BlackSheep Shuffler <span class="version-tag">v6.1.0</span></h3>';
+  html += '<h3>BlackSheep Shuffler <span class="version-tag">v' + esc(appVersion) + '</span></h3>';
   html += '<p>Smart badminton scheduling for different play formats.</p>';
 
   if (mode === 'session') {

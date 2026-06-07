@@ -12,7 +12,7 @@
       <header>
         <div class="bds-app-title">
           <img src="<?php echo esc_url( $asset_url . 'img/blacksheeptext.png' ); ?>" alt="Logo" class="bds-logo">
-          <h1>BLACKSHEEP SHUFFLER <span class="version-tag">v6.1.0</span></h1>
+          <h1>BLACKSHEEP SHUFFLER <span class="version-tag">v<?php echo esc_html( $plugin_version ); ?></span></h1>
         </div>
         <div class="theme-switch-wrapper">
           <label class="theme-switch" for="theme-checkbox" title="Toggle Light/Dark Mode">
