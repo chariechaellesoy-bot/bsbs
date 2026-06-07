@@ -1254,13 +1254,17 @@ var PROMOTION_ENTRY_MODE = 'single';
         var c = P.courts[ci];
         if (!c || !pO || !pI) return false;
 
-        var lane = (c.track === 'winners') ? 'winners' : (c.track === 'losers' ? 'losers' : 'seed');
-        var sourcePool = lane === 'winners' ? P.winnersPool : lane === 'losers' ? P.losersPool : P.seedPool;
+        var sourcePoolName = null;
+        if (P.winnersPool.indexOf(pI) !== -1) sourcePoolName = 'winnersPool';
+        else if (P.losersPool.indexOf(pI) !== -1) sourcePoolName = 'losersPool';
+        else if (P.seedPool.indexOf(pI) !== -1) sourcePoolName = 'seedPool';
 
-        if (sourcePool.indexOf(pI) === -1) {
-          notify('Replacement must come from the same lane.', 'error');
+        if (!sourcePoolName) {
+          notify('Replacement player must be waiting in a lane.', 'error');
           return false;
         }
+
+        var sourcePool = P[sourcePoolName];
 
         var nA = c.teamA.slice(), nB = c.teamB.slice();
         if (nA.indexOf(pO) !== -1) nA[nA.indexOf(pO)] = pI;
@@ -1277,10 +1281,12 @@ var PROMOTION_ENTRY_MODE = 'single';
         if (idx !== -1) sourcePool.splice(idx, 1);
         sourcePool.push(pO);
 
+        var replacementLane = sourcePoolName === 'winnersPool' ? 'winners' : (sourcePoolName === 'losersPool' ? 'losers' : 'seed');
+
         if (P.playerState[pI]) P.playerState[pI].lane = 'oncourt';
         if (P.playerState[pO]) {
-          P.playerState[pO].lane = lane;
-          P.playerState[pO].lastKnownLane = lane;
+          P.playerState[pO].lane = replacementLane;
+          P.playerState[pO].lastKnownLane = replacementLane;
         }
 
         notify(pI + ' swapped with ' + pO + '.');
@@ -2007,9 +2013,9 @@ function setPromotionEntryMode(mode) {
     popSel(qs('#courtToRemove'), courtOpts, 'Select Court to Remove');
     popSel(qs('#courtToRename'), courtOpts, 'Select Court to Rename');
 
-    var resting = gERP();
+    var customSessionCandidates = activeSessionPlayers().filter(function(p) { return !iTL(p); });
     ['#tempPlayer1', '#tempPlayer2', '#tempPlayer3', '#tempPlayer4'].forEach(function(id) {
-      popSel(qs(id), resting, id.replace('#tempPlayer','Select Player '));
+      popSel(qs(id), customSessionCandidates, id.replace('#tempPlayer','Select Player '));
     });
 
     /* Promotion dropdowns */
@@ -2137,11 +2143,9 @@ function setPromotionEntryMode(mode) {
     var c = P.courts[ci];
     if (!c || !c.players || c.players.length !== 4) { notify('No active game on this court.', 'error'); return; }
 
-    var lane = (c.track === 'winners') ? 'winners' : (c.track === 'losers' ? 'losers' : 'seed');
-    var sourcePool = lane === 'winners' ? P.winnersPool : lane === 'losers' ? P.losersPool : P.seedPool;
-    var candidates = sourcePool.filter(function(n) { return !pITL(n); });
+    var candidates = pWaitingPool().filter(function(n) { return !pITL(n); });
 
-    if (!candidates.length) { notify('No eligible replacements in ' + lane + ' lane.', 'error'); return; }
+    if (!candidates.length) { notify('No eligible replacements available.', 'error'); return; }
 
     var m = qs('#promotionManageModal');
     m.dataset.editingCourt = String(ci);
@@ -2502,7 +2506,7 @@ function rAbout(modeOverride) {
       '<h4>Promotion tools</h4>' +
       '<ul>' +
         '<li><strong>Edit Teams</strong> on an active court.</li>' +
-        '<li><strong>Swap Player</strong> with a waiting player from the same lane context.</li>' +
+        '<li><strong>Swap Player</strong> with any waiting player across lanes.</li>' +
         '<li><strong>Custom Game</strong> scheduling (max 3 queued custom games).</li>' +
       '</ul>';
   }
@@ -2539,7 +2543,7 @@ function rAbout(modeOverride) {
           '<li><strong>Manage → Add Player</strong>: adds a new player into the Seed Lane.</li>' +
           '<li><strong>Manage → Remove Player</strong>: removes the player from live rotation but keeps their stats visible in the Stats screen.</li>' +
           '<li><strong>Manage → Reinstate Player</strong>: returns a removed player to the Seed Lane so they can join upcoming games again.</li>' +
-          '<li><strong>Swap</strong> on a court only allows replacements from the same lane context as that court.</li>' +
+          '<li><strong>Swap</strong> on a court can use any waiting player from any lane.</li>' +
           '<li><strong>Custom Game</strong> lets you queue a specific 4-player match once those players are all waiting.</li>' +
         '</ul>' +
         '<h5>Reading the screen</h5>' +
