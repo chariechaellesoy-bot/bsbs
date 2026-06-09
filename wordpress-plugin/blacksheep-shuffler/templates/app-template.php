@@ -1,25 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>BlackSheep Shuffler</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-
-  <link rel="stylesheet" href="assets/badminton-shuffler.css" />
-</head>
-<body>
-  <div id="bds-app-wrapper">
+<?php
+/**
+ * Frontend template for BlackSheep Shuffler.
+ *
+ * @var string $asset_url
+ */
+?>
+<div id="bds-app-wrapper">
     <div id="notification" class="notification"></div>
 
     <div class="app-container">
       <header>
         <div class="bds-app-title">
-          <img src="assets/img/blacksheeptext.png" alt="Logo" class="bds-logo">
-          <h1>BLACKSHEEP SHUFFLER <span class="version-tag">v6.5.0</span></h1>
+          <img src="<?php echo esc_url( $asset_url . 'img/blacksheeptext.png' ); ?>" alt="Logo" class="bds-logo">
+          <h1>BLACKSHEEP SHUFFLER <span class="version-tag">v<?php echo esc_html( $plugin_version ); ?></span></h1>
         </div>
         <div class="theme-switch-wrapper">
           <label class="theme-switch" for="theme-checkbox" title="Toggle Light/Dark Mode">
@@ -34,11 +27,13 @@
         <p>Choose how you want to run today's games.</p>
         <div class="mode-grid">
           <div class="mode-card">
-            <h4>Session <span class="mode-badge">Shuffle</span></h4>
-            <button id="selectSessionModeBtn" class="btn-primary" style="width:100%;">Start Session</button>
+            <h4>Regular Session <span class="mode-badge">Queue</span></h4>
+            <p>Fair rotation to all players based on skill level</p>
+            <button id="selectSessionModeBtn" class="btn-primary" style="width:100%;">Start Queue</button>
           </div>
           <div class="mode-card">
             <h4>Promotion / Stacking <span class="mode-badge">Queue</span></h4>
+            <p>Winners battle Winners , Losers battle Losers</p>
             <button id="selectPromotionModeBtn" class="btn-info" style="width:100%;">Start Queue</button>
           </div>
         </div>
@@ -484,7 +479,3 @@
       </div>
     </div>
   </div>
-
-  <script src="assets/badminton-shuffler.js"></script>
-</body>
-</html>
