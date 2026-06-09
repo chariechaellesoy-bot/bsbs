@@ -29,7 +29,7 @@
           <div class="mode-card">
             <h4>Regular Session <span class="mode-badge">Queue</span></h4>
             <p>Fair rotation to all players based on skill level</p>
-            <button id="selectSessionModeBtn" class="btn-primary" style="width:100%;">Start Qeue</button>
+            <button id="selectSessionModeBtn" class="btn-primary" style="width:100%;">Start Queue</button>
           </div>
           <div class="mode-card">
             <h4>Promotion / Stacking <span class="mode-badge">Queue</span></h4>
