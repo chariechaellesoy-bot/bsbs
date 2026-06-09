@@ -3,7 +3,7 @@
  * Plugin Name: BlackSheep Shuffler
  * Plugin URI: https://github.com/chariechaellesoy-bot/bsbs
  * Description: WordPress plugin version of the BlackSheep Shuffler badminton app.
- * Version: 6.4.0
+ * Version: 6.5.0
  * Author: BlackSheep
  * License: GPL-2.0-or-later
  * Text Domain: blacksheep-shuffler
@@ -26,7 +26,7 @@ define( 'BSBS_PLUGIN_PATH', plugin_dir_path( BSBS_PLUGIN_FILE ) );
 }
 
 if ( ! defined( 'BSBS_PLUGIN_VERSION' ) ) {
-define( 'BSBS_PLUGIN_VERSION', '6.4.0' );
+define( 'BSBS_PLUGIN_VERSION', '6.5.0' );
 }
 
 /**

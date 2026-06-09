@@ -684,6 +684,7 @@ var PROMOTION_ENTRY_MODE = 'single';
     state.fees = normalizeFeesState(state.fees);
     if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false, showAccount: false };
     state.fees.players[playerName].paid = !state.fees.players[playerName].paid;
+    if (state.fees.players[playerName].paid) state.fees.players[playerName].showAccount = false;
     if (mode === 'promotion') renderPromotionFeesPanel();
     else renderSessionFeesPanel();
     save();
@@ -2764,7 +2765,7 @@ function rAbout(modeOverride) {
   }
 
   var html = '';
-  html += '<h3>BlackSheep Shuffler <span class="version-tag">v6.1.0</span></h3>';
+  html += '<h3>BlackSheep Shuffler <span class="version-tag">v6.5.0</span></h3>';
   html += '<p>Smart badminton scheduling for different play formats.</p>';
 
   if (mode === 'session') {
