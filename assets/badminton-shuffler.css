@@ -535,7 +535,7 @@
 }
 #bds-app-wrapper .fees-summary-card strong{font-size:.78rem;color:var(--bds-primary)}
 #bds-app-wrapper .fees-player-row{display:flex;flex-direction:column;align-items:stretch;gap:.35rem}
-#bds-app-wrapper .fees-player-row-paid{opacity:.55;background:#4caf50}
+#bds-app-wrapper .fees-player-row-paid{opacity:.55;background:var(--bds-secondary)}
 #bds-app-wrapper .fees-player-header{display:flex;justify-content:space-between;align-items:center;gap:.35rem}
 #bds-app-wrapper .fees-player-meta{display:flex;flex-direction:column;gap:.15rem}
 #bds-app-wrapper .fees-player-name{font-size:.63rem;font-weight:600}
