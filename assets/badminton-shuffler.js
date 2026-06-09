@@ -80,6 +80,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
     return parts.join(' ');
   }
+  function parseAmt(v, allowNegative) {
+    var n = parseFloat(v);
+    if (isNaN(n)) return 0;
+    if (!allowNegative && n < 0) return 0;
+    return n;
+  }
+  function fmtAmt(v) {
+    var n = parseFloat(v);
+    if (isNaN(n)) n = 0;
+    return n.toFixed(2);
+  }
+  function createFeesState() {
+    return {
+      courtCount: 0,
+      hourlyRate: 0,
+      shuttlesUsed: 0,
+      players: {}
+    };
+  }
+  function syncFeesPlayers(feesState, players) {
+    if (!feesState.players) feesState.players = {};
+    var next = {};
+    players.forEach(function(name) {
+      var prev = feesState.players[name] || {};
+      next[name] = {
+        deposited: parseAmt(prev.deposited, false),
+        balance: parseAmt(prev.balance, true),
+        paid: !!prev.paid
+      };
+    });
+    feesState.players = next;
+  }
+  function renameFeePlayer(feesState, oldName, newName) {
+    if (!feesState || !feesState.players || oldName === newName) return;
+    if (!feesState.players[oldName]) return;
+    if (!feesState.players[newName]) feesState.players[newName] = feesState.players[oldName];
+    delete feesState.players[oldName];
+  }
+  function calcPerPlayerFee(feesState, playerCount) {
+    var courts = parseAmt(feesState.courtCount, false);
+    var hourly = parseAmt(feesState.hourlyRate, false);
+    var shuttles = parseAmt(feesState.shuttlesUsed, false);
+    var total = (courts * hourly) + shuttles;
+    if (!playerCount) return 0;
+    return total / playerCount;
+  }
 
   function shuf(a) {
     for (var i = a.length - 1; i > 0; i--) {
@@ -173,7 +219,8 @@ var PROMOTION_ENTRY_MODE = 'single';
     matchHistory: [], teamPairings: {}, opponentPairings: {},
     allPlayersList: [], playerMeta: {}, gameInProgress: false,
     undoStack: [], completedGameCount: 0,
-    tempCourts: []
+    tempCourts: [],
+    fees: createFeesState()
   };
 
 
@@ -192,7 +239,8 @@ var PROMOTION_ENTRY_MODE = 'single';
     opponentPairings: {},
     undoStack: [],
     completedGameCount: 0,
-    tempCourts: []
+    tempCourts: [],
+    fees: createFeesState()
   };
 
   /* ── Persistence ───────────────────────────────────────── */
@@ -236,6 +284,7 @@ var PROMOTION_ENTRY_MODE = 'single';
             delete l.tempCourt;
           }
           if (!l.completedGameCount) l.completedGameCount = 0;
+          if (!l.fees) l.fees = createFeesState();
           MODE = 'session'; S = l;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
@@ -262,6 +311,7 @@ var PROMOTION_ENTRY_MODE = 'single';
           if (!l3.teamPairings) l3.teamPairings = {};
           if (!l3.opponentPairings) l3.opponentPairings = {};
           if (!l3.playerState) l3.playerState = {};
+          if (!l3.fees) l3.fees = createFeesState();
           MODE = 'promotion'; P = l3;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
@@ -437,6 +487,7 @@ var PROMOTION_ENTRY_MODE = 'single';
     qsa('.mgmt-sub-panel').forEach(function(p) { p.classList.remove('active'); });
     var p = qs('#mgmt-' + id);
     if (p) p.classList.add('active');
+    if (id === 'fees') renderSessionFeesPanel();
   }
 
   function rPMM() {
@@ -457,6 +508,96 @@ var PROMOTION_ENTRY_MODE = 'single';
     Array.prototype.forEach.call(panels, function(p) { p.classList.remove('active'); });
     var p = qs('#pmgmt-' + id);
     if (p) p.classList.add('active');
+    if (id === 'fees') renderPromotionFeesPanel();
+  }
+
+  function renderFeesPanel(mode, rootId, totalId, listId) {
+    var isPromotion = mode === 'promotion';
+    var state = isPromotion ? P : S;
+    if (!state || !state.gameInProgress) return;
+    if (!state.fees) state.fees = createFeesState();
+    var feesState = state.fees;
+    var players = isPromotion ? activePromotionPlayers() : activeSessionPlayers();
+    syncFeesPlayers(feesState, players);
+
+    var perPlayer = calcPerPlayerFee(feesState, players.length);
+    var totalEl = qs('#' + totalId);
+    if (totalEl) totalEl.textContent = fmtAmt(perPlayer);
+
+    var courtInput = qs('#' + rootId + 'CourtCount');
+    var hourlyInput = qs('#' + rootId + 'HourlyRate');
+    var shuttleInput = qs('#' + rootId + 'ShuttlesUsed');
+    if (courtInput && document.activeElement !== courtInput) courtInput.value = feesState.courtCount;
+    if (hourlyInput && document.activeElement !== hourlyInput) hourlyInput.value = feesState.hourlyRate;
+    if (shuttleInput && document.activeElement !== shuttleInput) shuttleInput.value = feesState.shuttlesUsed;
+
+    var listEl = qs('#' + listId);
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (!players.length) {
+      listEl.innerHTML = rES('💸', 'No active players for fee calculation.');
+      return;
+    }
+
+    players.forEach(function(name) {
+      var pf = feesState.players[name] || { deposited: 0, balance: 0, paid: false };
+      var previousBalance = parseAmt(pf.balance, true);
+      var deposited = parseAmt(pf.deposited, false);
+      var payable = perPlayer + previousBalance;
+      var remaining = payable - deposited;
+      var row = document.createElement('div');
+      row.className = 'pending-item fees-player-row' + (pf.paid ? ' fees-player-row-paid' : '');
+      row.innerHTML =
+        '<div class="meta fees-player-meta">' +
+          '<div class="fees-player-name">' + escHtml(name) + '</div>' +
+          '<div class="fees-player-total">Payable: ' + fmtAmt(payable) + ' · Remaining: ' + fmtAmt(remaining) + '</div>' +
+        '</div>' +
+        '<div class="fees-player-controls">' +
+          '<div class="fees-input-group">' +
+            '<label>Deposited</label>' +
+            '<input type="number" min="0" step="0.01" value="' + fmtAmt(deposited) + '" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-input="deposited" />' +
+          '</div>' +
+          '<div class="fees-input-group">' +
+            '<label>Balance</label>' +
+            '<input type="number" step="0.01" value="' + fmtAmt(previousBalance) + '" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-input="balance" />' +
+          '</div>' +
+          '<button class="btn-secondary fees-paid-btn" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-paid-toggle="true">' + (pf.paid ? 'Paid ✓' : 'Paid') + '</button>' +
+        '</div>';
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderSessionFeesPanel() {
+    renderFeesPanel('session', 'fee', 'sessionFeePerPlayer', 'sessionFeesPlayerList');
+  }
+  function renderPromotionFeesPanel() {
+    renderFeesPanel('promotion', 'pFee', 'promotionFeePerPlayer', 'promotionFeesPlayerList');
+  }
+  function updateFeeSettings(mode, key, value) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state.fees) state.fees = createFeesState();
+    state.fees[key] = value;
+    if (mode === 'promotion') renderPromotionFeesPanel();
+    else renderSessionFeesPanel();
+    save();
+  }
+  function updatePlayerFee(mode, playerName, key, value) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state.fees) state.fees = createFeesState();
+    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false };
+    state.fees.players[playerName][key] = value;
+    if (mode === 'promotion') renderPromotionFeesPanel();
+    else renderSessionFeesPanel();
+    save();
+  }
+  function togglePlayerPaid(mode, playerName) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state.fees) state.fees = createFeesState();
+    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false };
+    state.fees.players[playerName].paid = !state.fees.players[playerName].paid;
+    if (mode === 'promotion') renderPromotionFeesPanel();
+    else renderSessionFeesPanel();
+    save();
   }
 
   /* ── Admin Mode ────────────────────────────────────────── */
@@ -1331,7 +1472,8 @@ var PROMOTION_ENTRY_MODE = 'single';
       gameInProgress: true,
       undoStack: [],
       completedGameCount: 0,
-      tempCourts: []
+      tempCourts: [],
+      fees: createFeesState()
     };
     PP.forEach(function(p) {
       var l = norm(p.name);
@@ -1505,7 +1647,8 @@ function setPromotionEntryMode(mode) {
       opponentPairings: {},
       undoStack: [],
       completedGameCount: 0,
-      tempCourts: []
+      tempCourts: [],
+      fees: createFeesState()
     };
 
     names.forEach(function(n) {
@@ -1697,6 +1840,7 @@ function setPromotionEntryMode(mode) {
 
     S.playCount[newName] = S.playCount[oldName];
     delete S.playCount[oldName];
+    renameFeePlayer(S.fees, oldName, newName);
 
     S.playerMeta[newNorm] = {
       name: newName,
@@ -1886,6 +2030,7 @@ function setPromotionEntryMode(mode) {
 
     P.playerState[newName] = P.playerState[oldName];
     delete P.playerState[oldName];
+    renameFeePlayer(P.fees, oldName, newName);
 
     rebuildPP();
     qs('#pRenamePlayerInput').value = '';
@@ -2614,6 +2759,8 @@ function rAbout(modeOverride) {
     else if (MODE === 'promotion') rPromotionCourts();
 
     pDD();
+    renderSessionFeesPanel();
+    renderPromotionFeesPanel();
     updateUndoUI();
     save();
   }
@@ -2851,6 +2998,12 @@ function rAbout(modeOverride) {
 
   /* ── Non-button delegated clicks ───────────────────────── */
   W.addEventListener('click', function(e) {
+    var paidBtn = e.target.closest('button[data-fee-paid-toggle]');
+    if (paidBtn) {
+      togglePlayerPaid(paidBtn.dataset.feeMode, paidBtn.dataset.feePlayer);
+      return;
+    }
+
     var btn1 = e.target.closest('button[data-remove-index]');
     if (btn1) {
       var i1 = parseInt(btn1.dataset.removeIndex, 10);
@@ -2869,6 +3022,22 @@ function rAbout(modeOverride) {
         pRenderPendingPlayers();
       }
       return;
+    }
+  });
+
+  W.addEventListener('input', function(e) {
+    var t = e.target;
+    if (!t) return;
+
+    if (t.id === 'feeCourtCount') updateFeeSettings('session', 'courtCount', parseAmt(t.value, false));
+    else if (t.id === 'feeHourlyRate') updateFeeSettings('session', 'hourlyRate', parseAmt(t.value, false));
+    else if (t.id === 'feeShuttlesUsed') updateFeeSettings('session', 'shuttlesUsed', parseAmt(t.value, false));
+    else if (t.id === 'pFeeCourtCount') updateFeeSettings('promotion', 'courtCount', parseAmt(t.value, false));
+    else if (t.id === 'pFeeHourlyRate') updateFeeSettings('promotion', 'hourlyRate', parseAmt(t.value, false));
+    else if (t.id === 'pFeeShuttlesUsed') updateFeeSettings('promotion', 'shuttlesUsed', parseAmt(t.value, false));
+    else if (t.dataset && t.dataset.feeInput && t.dataset.feeMode && t.dataset.feePlayer) {
+      var isBalance = t.dataset.feeInput === 'balance';
+      updatePlayerFee(t.dataset.feeMode, t.dataset.feePlayer, t.dataset.feeInput, parseAmt(t.value, isBalance));
     }
   });
 

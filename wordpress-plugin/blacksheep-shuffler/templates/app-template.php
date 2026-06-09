@@ -150,6 +150,7 @@
             <button class="mgmt-menu-btn" data-mgmt="removePlayer"><span class="mgmt-icon">🚫</span>Remove Player</button>
             <button class="mgmt-menu-btn" data-mgmt="reinstatePlayer"><span class="mgmt-icon">♻️</span>Reinstate Player</button>
             <button class="mgmt-menu-btn" data-mgmt="courts"><span class="mgmt-icon">🏟️</span>Courts</button>
+            <button class="mgmt-menu-btn" data-mgmt="fees"><span class="mgmt-icon">💸</span>Fees</button>
             <button class="mgmt-menu-btn" data-mgmt="customGame"><span class="mgmt-icon">📋</span>Custom Game</button>
             <button class="mgmt-menu-btn" data-mgmt="gameActions"><span class="mgmt-icon">⚙️</span>Game Actions</button>
           </div>
@@ -215,6 +216,20 @@
             <select id="courtToRename"><option value="">Select Court to Rename</option></select>
             <input id="courtRenameInput" type="text" placeholder="Enter new court name..." />
             <button id="renameCourtBtn" class="btn-secondary" style="width:100%;">Rename Court</button>
+          </div>
+
+          <div id="mgmt-fees" class="mgmt-sub-panel">
+            <button class="mgmt-back-btn" data-mgmt-back>← Back</button>
+            <h4>Fees</h4>
+            <p class="fees-formula-text">(Courts × Hourly Rate + Shuttles) ÷ Active Players</p>
+            <div class="fees-summary-card">
+              <div>Total Per Player</div>
+              <strong id="sessionFeePerPlayer">0.00</strong>
+            </div>
+            <input id="feeCourtCount" type="number" min="0" step="1" placeholder="Number of courts" />
+            <input id="feeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly rate of courts" />
+            <input id="feeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used (amount)" />
+            <div id="sessionFeesPlayerList" class="pending-list"></div>
           </div>
 
           <div id="mgmt-customGame" class="mgmt-sub-panel">
@@ -300,6 +315,7 @@
             <button class="mgmt-menu-btn" data-pmgmt="removePlayer"><span class="mgmt-icon">🚫</span>Remove Player</button>
             <button class="mgmt-menu-btn" data-pmgmt="reinstatePlayer"><span class="mgmt-icon">♻️</span>Reinstate Player</button>
             <button class="mgmt-menu-btn" data-pmgmt="courts"><span class="mgmt-icon">🏟️</span>Courts</button>
+            <button class="mgmt-menu-btn" data-pmgmt="fees"><span class="mgmt-icon">💸</span>Fees</button>
             <button class="mgmt-menu-btn" data-pmgmt="customGame"><span class="mgmt-icon">📋</span>Custom Game</button>
             <button class="mgmt-menu-btn" data-pmgmt="gameActions"><span class="mgmt-icon">⚙️</span>Game Actions</button>
           </div>
@@ -348,6 +364,20 @@
             <select id="pCourtToRename"><option value="">Select Court to Rename</option></select>
             <input id="pCourtRenameInput" type="text" placeholder="Enter new court name..." />
             <button id="pRenameCourtBtn" class="btn-secondary" style="width:100%;">Rename Court</button>
+          </div>
+
+          <div id="pmgmt-fees" class="mgmt-sub-panel">
+            <button class="mgmt-back-btn" data-pmgmt-back>← Back</button>
+            <h4>Fees</h4>
+            <p class="fees-formula-text">(Courts × Hourly Rate + Shuttles) ÷ Active Players</p>
+            <div class="fees-summary-card">
+              <div>Total Per Player</div>
+              <strong id="promotionFeePerPlayer">0.00</strong>
+            </div>
+            <input id="pFeeCourtCount" type="number" min="0" step="1" placeholder="Number of courts" />
+            <input id="pFeeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly rate of courts" />
+            <input id="pFeeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used (amount)" />
+            <div id="promotionFeesPlayerList" class="pending-list"></div>
           </div>
 
           <div id="pmgmt-customGame" class="mgmt-sub-panel">
