@@ -221,14 +221,19 @@
           <div id="mgmt-fees" class="mgmt-sub-panel">
             <button class="mgmt-back-btn" data-mgmt-back>← Back</button>
             <h4>Fees</h4>
-            <p class="fees-formula-text">(Courts × Hourly Rate + Shuttles) ÷ Active Players</p>
+            <button id="feeQrUploadBtn" class="btn-secondary fees-qr-upload-btn" type="button">Upload QR Code</button>
+            <input id="feeQrFileInput" type="file" accept="image/*" class="fees-qr-file-input" />
+            <div id="feeQrPreview"></div>
+            <p class="fees-formula-text">(Courts × Hourly Rate × Number of Hours + Price per shuttle × Shuttles used) ÷ Active Players</p>
             <div class="fees-summary-card">
               <div>Total Per Player</div>
               <strong id="sessionFeePerPlayer">0.00</strong>
             </div>
-            <input id="feeCourtCount" type="number" min="0" step="1" placeholder="Number of courts" />
-            <input id="feeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly rate of courts" />
-            <input id="feeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used (amount)" />
+            <input id="feeCourtCount" type="number" min="0" step="1" placeholder="Number of Courts" />
+            <input id="feeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly Rate" />
+            <input id="feeNumberOfHours" type="number" min="0" step="0.01" placeholder="Number of Hours" />
+            <input id="feePricePerShuttle" type="number" min="0" step="0.01" placeholder="Price per shuttle" />
+            <input id="feeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used" />
             <div id="sessionFeesPlayerList" class="pending-list"></div>
           </div>
 
@@ -369,14 +374,19 @@
           <div id="pmgmt-fees" class="mgmt-sub-panel">
             <button class="mgmt-back-btn" data-pmgmt-back>← Back</button>
             <h4>Fees</h4>
-            <p class="fees-formula-text">(Courts × Hourly Rate + Shuttles) ÷ Active Players</p>
+            <button id="pFeeQrUploadBtn" class="btn-secondary fees-qr-upload-btn" type="button">Upload QR Code</button>
+            <input id="pFeeQrFileInput" type="file" accept="image/*" class="fees-qr-file-input" />
+            <div id="pFeeQrPreview"></div>
+            <p class="fees-formula-text">(Courts × Hourly Rate × Number of Hours + Price per shuttle × Shuttles used) ÷ Active Players</p>
             <div class="fees-summary-card">
               <div>Total Per Player</div>
               <strong id="promotionFeePerPlayer">0.00</strong>
             </div>
-            <input id="pFeeCourtCount" type="number" min="0" step="1" placeholder="Number of courts" />
-            <input id="pFeeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly rate of courts" />
-            <input id="pFeeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used (amount)" />
+            <input id="pFeeCourtCount" type="number" min="0" step="1" placeholder="Number of Courts" />
+            <input id="pFeeHourlyRate" type="number" min="0" step="0.01" placeholder="Hourly Rate" />
+            <input id="pFeeNumberOfHours" type="number" min="0" step="0.01" placeholder="Number of Hours" />
+            <input id="pFeePricePerShuttle" type="number" min="0" step="0.01" placeholder="Price per shuttle" />
+            <input id="pFeeShuttlesUsed" type="number" min="0" step="0.01" placeholder="Shuttles used" />
             <div id="promotionFeesPlayerList" class="pending-list"></div>
           </div>
 

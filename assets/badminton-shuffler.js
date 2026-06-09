@@ -95,9 +95,32 @@ document.addEventListener('DOMContentLoaded', function() {
     return {
       courtCount: 0,
       hourlyRate: 0,
+      numberOfHours: 0,
+      pricePerShuttle: 0,
       shuttlesUsed: 0,
-      players: {}
+      players: {},
+      qrImageDataUrl: ''
     };
+  }
+  function normalizeFeesState(feesState) {
+    var next = feesState && typeof feesState === 'object' ? feesState : createFeesState();
+    next.courtCount = parseAmt(next.courtCount, false);
+    next.hourlyRate = parseAmt(next.hourlyRate, false);
+    next.numberOfHours = parseAmt(next.numberOfHours, false);
+    next.pricePerShuttle = parseAmt(next.pricePerShuttle, false);
+    next.shuttlesUsed = parseAmt(next.shuttlesUsed, false);
+    next.qrImageDataUrl = typeof next.qrImageDataUrl === 'string' ? next.qrImageDataUrl : '';
+    if (!next.players || typeof next.players !== 'object') next.players = {};
+    Object.keys(next.players).forEach(function(playerName) {
+      var playerFee = next.players[playerName] || {};
+      next.players[playerName] = {
+        deposited: parseAmt(playerFee.deposited, false),
+        balance: parseAmt(playerFee.balance, true),
+        paid: !!playerFee.paid,
+        showAccount: !!playerFee.showAccount
+      };
+    });
+    return next;
   }
   function syncFeesPlayers(feesState, players) {
     if (!feesState.players) feesState.players = {};
@@ -107,7 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
       next[name] = {
         deposited: parseAmt(prev.deposited, false),
         balance: parseAmt(prev.balance, true),
-        paid: !!prev.paid
+        paid: !!prev.paid,
+        showAccount: !!prev.showAccount
       };
     });
     feesState.players = next;
@@ -121,8 +145,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function calcPerPlayerFee(feesState, playerCount) {
     var courts = parseAmt(feesState.courtCount, false);
     var hourly = parseAmt(feesState.hourlyRate, false);
+    var hours = parseAmt(feesState.numberOfHours, false);
+    var shuttlePrice = parseAmt(feesState.pricePerShuttle, false);
     var shuttles = parseAmt(feesState.shuttlesUsed, false);
-    var total = (courts * hourly) + shuttles;
+    var total = (courts * hourly * hours) + (shuttlePrice * shuttles);
     if (!playerCount) return 0;
     return total / playerCount;
   }
@@ -284,7 +310,7 @@ var PROMOTION_ENTRY_MODE = 'single';
             delete l.tempCourt;
           }
           if (!l.completedGameCount) l.completedGameCount = 0;
-          if (!l.fees) l.fees = createFeesState();
+          l.fees = normalizeFeesState(l.fees);
           MODE = 'session'; S = l;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
@@ -311,7 +337,7 @@ var PROMOTION_ENTRY_MODE = 'single';
           if (!l3.teamPairings) l3.teamPairings = {};
           if (!l3.opponentPairings) l3.opponentPairings = {};
           if (!l3.playerState) l3.playerState = {};
-          if (!l3.fees) l3.fees = createFeesState();
+          l3.fees = normalizeFeesState(l3.fees);
           MODE = 'promotion'; P = l3;
           showAppAfterModeSelect();
           qs('#setupControls').classList.add('hidden');
@@ -515,7 +541,7 @@ var PROMOTION_ENTRY_MODE = 'single';
     var isPromotion = mode === 'promotion';
     var state = isPromotion ? P : S;
     if (!state || !state.gameInProgress) return;
-    if (!state.fees) state.fees = createFeesState();
+    state.fees = normalizeFeesState(state.fees);
     var feesState = state.fees;
     var players = isPromotion ? activePromotionPlayers() : activeSessionPlayers();
     syncFeesPlayers(feesState, players);
@@ -526,10 +552,19 @@ var PROMOTION_ENTRY_MODE = 'single';
 
     var courtInput = qs('#' + rootId + 'CourtCount');
     var hourlyInput = qs('#' + rootId + 'HourlyRate');
+    var hoursInput = qs('#' + rootId + 'NumberOfHours');
+    var shuttlePriceInput = qs('#' + rootId + 'PricePerShuttle');
     var shuttleInput = qs('#' + rootId + 'ShuttlesUsed');
-    if (courtInput && document.activeElement !== courtInput) courtInput.value = feesState.courtCount;
-    if (hourlyInput && document.activeElement !== hourlyInput) hourlyInput.value = feesState.hourlyRate;
-    if (shuttleInput && document.activeElement !== shuttleInput) shuttleInput.value = feesState.shuttlesUsed;
+    function updateFeeInput(input, value) {
+      if (!input || document.activeElement === input) return;
+      input.value = value > 0 ? value : '';
+    }
+    updateFeeInput(courtInput, feesState.courtCount);
+    updateFeeInput(hourlyInput, feesState.hourlyRate);
+    updateFeeInput(hoursInput, feesState.numberOfHours);
+    updateFeeInput(shuttlePriceInput, feesState.pricePerShuttle);
+    updateFeeInput(shuttleInput, feesState.shuttlesUsed);
+    renderFeeQr(mode, rootId);
 
     var listEl = qs('#' + listId);
     if (!listEl) return;
@@ -540,13 +575,16 @@ var PROMOTION_ENTRY_MODE = 'single';
     }
 
     players.forEach(function(name) {
-      var pf = feesState.players[name] || { deposited: 0, balance: 0, paid: false };
+      var pf = feesState.players[name] || { deposited: 0, balance: 0, paid: false, showAccount: false };
       var previousBalance = parseAmt(pf.balance, true);
       var deposited = parseAmt(pf.deposited, false);
       var payable = perPlayer + previousBalance;
       var remaining = payable - deposited;
       var row = document.createElement('div');
       row.className = 'pending-item fees-player-row' + (pf.paid ? ' fees-player-row-paid' : '');
+
+      var header = document.createElement('div');
+      header.className = 'fees-player-header';
 
       var meta = document.createElement('div');
       meta.className = 'meta fees-player-meta';
@@ -558,6 +596,16 @@ var PROMOTION_ENTRY_MODE = 'single';
       totals.textContent = 'Payable: ' + fmtAmt(payable) + ' · Remaining: ' + fmtAmt(remaining);
       meta.appendChild(playerName);
       meta.appendChild(totals);
+
+      var accountToggleBtn = document.createElement('button');
+      accountToggleBtn.className = 'btn-toggle fees-account-toggle-btn';
+      accountToggleBtn.dataset.feeMode = mode;
+      accountToggleBtn.dataset.feePlayer = name;
+      accountToggleBtn.dataset.feeAccountToggle = 'true';
+      accountToggleBtn.textContent = pf.showAccount ? 'Hide Account' : 'Show Account';
+
+      header.appendChild(meta);
+      header.appendChild(accountToggleBtn);
 
       var controls = document.createElement('div');
       controls.className = 'fees-player-controls';
@@ -602,8 +650,8 @@ var PROMOTION_ENTRY_MODE = 'single';
       controls.appendChild(balanceWrap);
       controls.appendChild(paidBtn);
 
-      row.appendChild(meta);
-      row.appendChild(controls);
+      row.appendChild(header);
+      if (pf.showAccount) row.appendChild(controls);
       listEl.appendChild(row);
     });
   }
@@ -616,7 +664,7 @@ var PROMOTION_ENTRY_MODE = 'single';
   }
   function updateFeeSettings(mode, key, value) {
     var state = mode === 'promotion' ? P : S;
-    if (!state.fees) state.fees = createFeesState();
+    state.fees = normalizeFeesState(state.fees);
     state.fees[key] = value;
     if (mode === 'promotion') renderPromotionFeesPanel();
     else renderSessionFeesPanel();
@@ -624,8 +672,8 @@ var PROMOTION_ENTRY_MODE = 'single';
   }
   function updatePlayerFee(mode, playerName, key, value) {
     var state = mode === 'promotion' ? P : S;
-    if (!state.fees) state.fees = createFeesState();
-    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false };
+    state.fees = normalizeFeesState(state.fees);
+    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false, showAccount: false };
     state.fees.players[playerName][key] = value;
     if (mode === 'promotion') renderPromotionFeesPanel();
     else renderSessionFeesPanel();
@@ -633,9 +681,74 @@ var PROMOTION_ENTRY_MODE = 'single';
   }
   function togglePlayerPaid(mode, playerName) {
     var state = mode === 'promotion' ? P : S;
-    if (!state.fees) state.fees = createFeesState();
-    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false };
+    state.fees = normalizeFeesState(state.fees);
+    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false, showAccount: false };
     state.fees.players[playerName].paid = !state.fees.players[playerName].paid;
+    if (mode === 'promotion') renderPromotionFeesPanel();
+    else renderSessionFeesPanel();
+    save();
+  }
+  function togglePlayerAccount(mode, playerName) {
+    var state = mode === 'promotion' ? P : S;
+    state.fees = normalizeFeesState(state.fees);
+    if (!state.fees.players[playerName]) state.fees.players[playerName] = { deposited: 0, balance: 0, paid: false, showAccount: false };
+    state.fees.players[playerName].showAccount = !state.fees.players[playerName].showAccount;
+    if (mode === 'promotion') renderPromotionFeesPanel();
+    else renderSessionFeesPanel();
+    save();
+  }
+  function renderFeeQr(mode, rootId) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state || !state.fees) return;
+    var qrWrap = qs('#' + rootId + 'QrPreview');
+    if (!qrWrap) return;
+    qrWrap.innerHTML = '';
+    if (!state.fees.qrImageDataUrl) return;
+    var card = document.createElement('div');
+    card.className = 'fees-qr-card';
+    var img = document.createElement('img');
+    img.className = 'fees-qr-image';
+    img.src = state.fees.qrImageDataUrl;
+    img.alt = 'Uploaded QR code';
+    var removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-danger fees-qr-remove-btn';
+    removeBtn.textContent = 'Remove QR Code';
+    removeBtn.dataset.feeQrRemove = mode;
+    card.appendChild(img);
+    card.appendChild(removeBtn);
+    qrWrap.appendChild(card);
+  }
+  function uploadFeeQr(mode, fileInputId) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state || !state.gameInProgress) return;
+    state.fees = normalizeFeesState(state.fees);
+    var fileInput = qs('#' + fileInputId);
+    if (!fileInput || !fileInput.files || !fileInput.files.length) return;
+    var file = fileInput.files[0];
+    if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+      notify('Please select an image file.', 'error');
+      fileInput.value = '';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function() {
+      state.fees.qrImageDataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (mode === 'promotion') renderPromotionFeesPanel();
+      else renderSessionFeesPanel();
+      save();
+      fileInput.value = '';
+    };
+    reader.onerror = function() {
+      notify('Unable to upload QR code.', 'error');
+      fileInput.value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+  function removeFeeQr(mode) {
+    var state = mode === 'promotion' ? P : S;
+    if (!state) return;
+    state.fees = normalizeFeesState(state.fees);
+    state.fees.qrImageDataUrl = '';
     if (mode === 'promotion') renderPromotionFeesPanel();
     else renderSessionFeesPanel();
     save();
@@ -2899,6 +3012,7 @@ function rAbout(modeOverride) {
           localStorage.removeItem('badmintonPromotionState');
           localStorage.removeItem('bdsMode');
           localStorage.removeItem('bdsAdminState');
+          localStorage.removeItem('theme');
           window.location.reload();
         }
       },
@@ -2938,6 +3052,14 @@ function rAbout(modeOverride) {
       pRemoveCourtBtn: pRemCt,
       pRenameCourtBtn: pRenCt,
       pScheduleTempBtn: pSchTemp,
+      feeQrUploadBtn: function() {
+        var fileInput = qs('#feeQrFileInput');
+        if (fileInput) fileInput.click();
+      },
+      pFeeQrUploadBtn: function() {
+        var fileInput = qs('#pFeeQrFileInput');
+        if (fileInput) fileInput.click();
+      },
 
       saveTeamsBtn: function() {
         var i = parseInt(qs('#managementModal').dataset.editingCourt, 10);
@@ -3039,9 +3161,21 @@ function rAbout(modeOverride) {
 
   /* ── Non-button delegated clicks ───────────────────────── */
   W.addEventListener('click', function(e) {
+    var accountBtn = e.target.closest('button[data-fee-account-toggle]');
+    if (accountBtn) {
+      togglePlayerAccount(accountBtn.dataset.feeMode, accountBtn.dataset.feePlayer);
+      return;
+    }
+
     var paidBtn = e.target.closest('button[data-fee-paid-toggle]');
     if (paidBtn) {
       togglePlayerPaid(paidBtn.dataset.feeMode, paidBtn.dataset.feePlayer);
+      return;
+    }
+
+    var removeQrBtn = e.target.closest('button[data-fee-qr-remove]');
+    if (removeQrBtn) {
+      removeFeeQr(removeQrBtn.dataset.feeQrRemove);
       return;
     }
 
@@ -3072,10 +3206,16 @@ function rAbout(modeOverride) {
 
     if (t.id === 'feeCourtCount') updateFeeSettings('session', 'courtCount', parseAmt(t.value, false));
     else if (t.id === 'feeHourlyRate') updateFeeSettings('session', 'hourlyRate', parseAmt(t.value, false));
+    else if (t.id === 'feeNumberOfHours') updateFeeSettings('session', 'numberOfHours', parseAmt(t.value, false));
+    else if (t.id === 'feePricePerShuttle') updateFeeSettings('session', 'pricePerShuttle', parseAmt(t.value, false));
     else if (t.id === 'feeShuttlesUsed') updateFeeSettings('session', 'shuttlesUsed', parseAmt(t.value, false));
     else if (t.id === 'pFeeCourtCount') updateFeeSettings('promotion', 'courtCount', parseAmt(t.value, false));
     else if (t.id === 'pFeeHourlyRate') updateFeeSettings('promotion', 'hourlyRate', parseAmt(t.value, false));
+    else if (t.id === 'pFeeNumberOfHours') updateFeeSettings('promotion', 'numberOfHours', parseAmt(t.value, false));
+    else if (t.id === 'pFeePricePerShuttle') updateFeeSettings('promotion', 'pricePerShuttle', parseAmt(t.value, false));
     else if (t.id === 'pFeeShuttlesUsed') updateFeeSettings('promotion', 'shuttlesUsed', parseAmt(t.value, false));
+    else if (t.id === 'feeQrFileInput') uploadFeeQr('session', 'feeQrFileInput');
+    else if (t.id === 'pFeeQrFileInput') uploadFeeQr('promotion', 'pFeeQrFileInput');
     else if (t.dataset && t.dataset.feeInput && t.dataset.feeMode && t.dataset.feePlayer) {
       var isBalance = t.dataset.feeInput === 'balance';
       updatePlayerFee(t.dataset.feeMode, t.dataset.feePlayer, t.dataset.feeInput, parseAmt(t.value, isBalance));
