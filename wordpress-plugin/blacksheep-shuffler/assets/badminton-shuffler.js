@@ -547,22 +547,63 @@ var PROMOTION_ENTRY_MODE = 'single';
       var remaining = payable - deposited;
       var row = document.createElement('div');
       row.className = 'pending-item fees-player-row' + (pf.paid ? ' fees-player-row-paid' : '');
-      row.innerHTML =
-        '<div class="meta fees-player-meta">' +
-          '<div class="fees-player-name">' + escHtml(name) + '</div>' +
-          '<div class="fees-player-total">Payable: ' + fmtAmt(payable) + ' · Remaining: ' + fmtAmt(remaining) + '</div>' +
-        '</div>' +
-        '<div class="fees-player-controls">' +
-          '<div class="fees-input-group">' +
-            '<label>Deposited</label>' +
-            '<input type="number" min="0" step="0.01" value="' + fmtAmt(deposited) + '" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-input="deposited" />' +
-          '</div>' +
-          '<div class="fees-input-group">' +
-            '<label>Balance</label>' +
-            '<input type="number" step="0.01" value="' + fmtAmt(previousBalance) + '" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-input="balance" />' +
-          '</div>' +
-          '<button class="btn-secondary fees-paid-btn" data-fee-mode="' + mode + '" data-fee-player="' + escHtml(name) + '" data-fee-paid-toggle="true">' + (pf.paid ? 'Paid ✓' : 'Paid') + '</button>' +
-        '</div>';
+
+      var meta = document.createElement('div');
+      meta.className = 'meta fees-player-meta';
+      var playerName = document.createElement('div');
+      playerName.className = 'fees-player-name';
+      playerName.textContent = name;
+      var totals = document.createElement('div');
+      totals.className = 'fees-player-total';
+      totals.textContent = 'Payable: ' + fmtAmt(payable) + ' · Remaining: ' + fmtAmt(remaining);
+      meta.appendChild(playerName);
+      meta.appendChild(totals);
+
+      var controls = document.createElement('div');
+      controls.className = 'fees-player-controls';
+
+      var depositedWrap = document.createElement('div');
+      depositedWrap.className = 'fees-input-group';
+      var depositedLabel = document.createElement('label');
+      depositedLabel.textContent = 'Deposited';
+      var depositedInput = document.createElement('input');
+      depositedInput.type = 'number';
+      depositedInput.min = '0';
+      depositedInput.step = '0.01';
+      depositedInput.value = fmtAmt(deposited);
+      depositedInput.dataset.feeMode = mode;
+      depositedInput.dataset.feePlayer = name;
+      depositedInput.dataset.feeInput = 'deposited';
+      depositedWrap.appendChild(depositedLabel);
+      depositedWrap.appendChild(depositedInput);
+
+      var balanceWrap = document.createElement('div');
+      balanceWrap.className = 'fees-input-group';
+      var balanceLabel = document.createElement('label');
+      balanceLabel.textContent = 'Balance';
+      var balanceInput = document.createElement('input');
+      balanceInput.type = 'number';
+      balanceInput.step = '0.01';
+      balanceInput.value = fmtAmt(previousBalance);
+      balanceInput.dataset.feeMode = mode;
+      balanceInput.dataset.feePlayer = name;
+      balanceInput.dataset.feeInput = 'balance';
+      balanceWrap.appendChild(balanceLabel);
+      balanceWrap.appendChild(balanceInput);
+
+      var paidBtn = document.createElement('button');
+      paidBtn.className = 'btn-secondary fees-paid-btn';
+      paidBtn.dataset.feeMode = mode;
+      paidBtn.dataset.feePlayer = name;
+      paidBtn.dataset.feePaidToggle = 'true';
+      paidBtn.textContent = pf.paid ? 'Paid ✓' : 'Paid';
+
+      controls.appendChild(depositedWrap);
+      controls.appendChild(balanceWrap);
+      controls.appendChild(paidBtn);
+
+      row.appendChild(meta);
+      row.appendChild(controls);
       listEl.appendChild(row);
     });
   }
