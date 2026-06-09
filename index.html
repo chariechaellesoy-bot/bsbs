@@ -10,8 +10,87 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="assets/badminton-shuffler.css" />
+  <style>
+    #bds-login-screen{
+      --bds-bg:#120c1c;
+      --bds-card-bg:#1e1330;
+      --bds-text:#f8f4e3;
+      --bds-primary:#ffe066;
+      position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+      padding:1rem;background:var(--bds-bg);color:var(--bds-text);font-family:"Press Start 2P", monospace;
+    }
+    #bds-login-screen.dark-mode{
+      --bds-bg:#f6e79d;
+      --bds-card-bg:#fff8dc;
+      --bds-text:#2b1d0e;
+      --bds-primary:#ff7a00;
+    }
+    #bds-login-screen.hidden{display:none}
+    #bds-login-screen .login-card{
+      width:min(100%,520px);background:var(--bds-card-bg);border:3px solid var(--bds-primary);box-shadow:4px 4px 0 #000;
+      padding:1rem;
+    }
+    #bds-login-screen .login-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem}
+    #bds-login-screen .bds-logo{height:34px;width:auto;border:2px solid #000;background:#fff;box-shadow:2px 2px 0 #000}
+    #bds-login-screen h1{font-size:.9rem;line-height:1.4;margin:0;color:var(--bds-text)}
+    #bds-login-screen h3{font-size:.75rem;margin:.2rem 0 .7rem}
+    #bds-login-screen .version-tag{
+      font-size:.42rem;line-height:1;color:#111;background:#7cfb7c;padding:3px 5px;border:2px solid #000;box-shadow:2px 2px 0 #000;
+    }
+    #bds-login-screen input{
+      width:100%;padding:10px 8px;margin-bottom:.5rem;border:3px solid #000;background:#fff8dc;color:#111;
+      font-family:inherit;font-size:.68rem;
+    }
+    #bds-login-screen button{
+      font-family:inherit;font-size:.68rem;min-height:38px;border:3px solid #000;cursor:pointer;box-shadow:3px 3px 0 #000;
+      text-transform:uppercase;
+    }
+    #bds-login-screen .btn-primary{background:var(--bds-primary);color:#111}
+    #bds-login-screen .btn-secondary{background:#7cfb7c;color:#111}
+    #bds-login-screen .btn-info{background:#66d9ff;color:#111}
+    #bds-login-screen .hidden{display:none}
+    #bds-login-screen .login-notification{
+      margin-top:.8rem;padding:.55rem .6rem;border:2px solid #000;font-size:.6rem;line-height:1.5;
+    }
+    #bds-login-screen .login-notification.error{background:#ffb3c6;color:#38000c}
+    #bds-login-screen .login-notification.success{background:#b4f8c8;color:#06250f}
+    @media (max-width:560px){
+      #bds-login-screen .login-card{padding:.8rem}
+      #bds-login-screen h1{font-size:.72rem}
+      #bds-login-screen h3{font-size:.66rem}
+      #bds-login-screen input,#bds-login-screen button{font-size:.62rem}
+    }
+  </style>
 </head>
 <body>
+  <div id="bds-login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="assets/img/blacksheeptext.png" alt="Logo" class="bds-logo">
+        <h1>BLACKSHEEP SHUFFLER <span class="version-tag">v6.1.0</span></h1>
+      </div>
+
+      <div id="login-form-panel">
+        <h3>Sign In</h3>
+        <input type="email" id="loginEmail" placeholder="Email address..." autocomplete="email" />
+        <input type="password" id="loginPassword" placeholder="Password..." autocomplete="current-password" />
+        <button id="loginBtn" class="btn-primary" style="width:100%;margin-top:.5rem;">Sign In</button>
+        <button id="showRegisterBtn" class="btn-secondary" style="width:100%;margin-top:.4rem;">Create Account</button>
+        <button id="offlineModeBtn" class="btn-info" style="width:100%;margin-top:.4rem;">Continue Offline</button>
+      </div>
+
+      <div id="register-form-panel" class="hidden">
+        <h3>Create Account</h3>
+        <input type="text" id="registerName" placeholder="Display name..." autocomplete="name" />
+        <input type="email" id="registerEmail" placeholder="Email address..." autocomplete="email" />
+        <input type="password" id="registerPassword" placeholder="Password..." autocomplete="new-password" />
+        <button id="registerBtn" class="btn-primary" style="width:100%;margin-top:.5rem;">Create Account</button>
+        <button id="showLoginBtn" class="btn-secondary" style="width:100%;margin-top:.4rem;">Back to Sign In</button>
+      </div>
+
+      <div id="login-notification" class="login-notification hidden"></div>
+    </div>
+  </div>
   <div id="bds-app-wrapper">
     <div id="notification" class="notification"></div>
 
@@ -485,6 +564,8 @@
     </div>
   </div>
 
+  <script src="assets/bsbs-auth.js"></script>
+  <script src="assets/bsbs-api.js"></script>
   <script src="assets/badminton-shuffler.js"></script>
 </body>
 </html>
