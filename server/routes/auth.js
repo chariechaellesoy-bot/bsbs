@@ -2,8 +2,22 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
+
+function issueToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      display_name: user.display_name
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
 
 router.post('/register', async (req, res) => {
   const { email, password, display_name, role } = req.body || {};
@@ -27,11 +41,19 @@ router.post('/register', async (req, res) => {
       [normalizedEmail, password_hash, finalRole, String(display_name).trim()]
     );
 
-    return res.status(201).json({
+    const user = {
       id: result.insertId,
       email: normalizedEmail,
       role: finalRole,
       display_name: String(display_name).trim()
+    };
+
+    return res.status(201).json({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      display_name: user.display_name,
+      token: issueToken(user)
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to register user' });
@@ -63,25 +85,23 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        display_name: user.display_name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
     return res.json({
-      token,
+      token: issueToken(user),
       role: user.role,
       display_name: user.display_name
     });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to log in' });
   }
+});
+
+router.get('/me', auth, async (req, res) => {
+  return res.json({
+    id: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    display_name: req.user.display_name
+  });
 });
 
 module.exports = router;

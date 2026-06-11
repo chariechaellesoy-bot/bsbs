@@ -20,6 +20,9 @@
 
     var response = await fetch('/api' + path, Object.assign({}, options || {}, { headers: headers }));
     if (!response.ok) {
+      if (response.status === 401 && window.BSBS_AUTH && window.BSBS_AUTH.handleUnauthorized) {
+        window.BSBS_AUTH.handleUnauthorized();
+      }
       throw new Error('Request failed');
     }
     return response.json();
@@ -28,7 +31,7 @@
   window.BSBS_API = {
     save: async function(mode, state) {
       try {
-        if (!window.BSBS_AUTH || !window.BSBS_AUTH.isLoggedIn() || !window.BSBS_AUTH.isAdmin()) {
+        if (!window.BSBS_AUTH || !window.BSBS_AUTH.isLoggedIn()) {
           return false;
         }
 

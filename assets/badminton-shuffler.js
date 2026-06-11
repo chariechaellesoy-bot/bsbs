@@ -184,7 +184,7 @@ var PROMOTION_ENTRY_MODE = 'single';
       localStorage.setItem('badmintonPromotionState', JSON.stringify(Object.assign({}, P, { undoStack: [] })));
       localStorage.setItem('bdsMode', 'promotion');
     }
-    if (window.BSBS_API && window.BSBS_AUTH && window.BSBS_AUTH.isAdmin()) {
+    if (window.BSBS_API && window.BSBS_AUTH && window.BSBS_AUTH.isLoggedIn()) {
       var _apiState = null, _apiMode = MODE;
       if (MODE === 'session' && S.gameInProgress) _apiState = JSON.parse(JSON.stringify(Object.assign({}, S, { undoStack: [] })));
       else if (MODE === 'tournament' && T.gameInProgress) _apiState = JSON.parse(JSON.stringify(Object.assign({}, T, { undoStack: [] })));

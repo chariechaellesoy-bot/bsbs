@@ -37,6 +37,13 @@
 
   window.BSBS_AUTH = {
     apiUrl: '/api',
+    clearAuth: function() {
+      localStorage.removeItem('bsbs_token');
+      localStorage.removeItem('bsbs_role');
+      localStorage.removeItem('bsbs_display_name');
+      localStorage.removeItem('bsbs_offline');
+      localStorage.removeItem('bsbs_session_id');
+    },
     getToken: function() {
       return localStorage.getItem('bsbs_token');
     },
@@ -52,21 +59,52 @@
     getDisplayName: function() {
       return localStorage.getItem('bsbs_display_name');
     },
+    handleUnauthorized: function() {
+      this.clearAuth();
+      setAppVisibility(false);
+    },
     logout: function() {
-      localStorage.removeItem('bsbs_token');
-      localStorage.removeItem('bsbs_role');
-      localStorage.removeItem('bsbs_display_name');
-      localStorage.removeItem('bsbs_offline');
+      this.clearAuth();
       window.location.reload();
+    },
+    restoreSession: async function() {
+      var currentToken = this.getToken();
+      if (!currentToken) {
+        this.handleUnauthorized();
+        return false;
+      }
+
+      try {
+        var res = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: { Authorization: 'Bearer ' + currentToken }
+        });
+        var data = await res.json();
+        if (!res.ok || !data || !data.id) {
+          this.handleUnauthorized();
+          return false;
+        }
+
+        localStorage.setItem('bsbs_role', data.role || 'member');
+        localStorage.setItem('bsbs_display_name', data.display_name || '');
+        localStorage.removeItem('bsbs_offline');
+        return true;
+      } catch (err) {
+        this.handleUnauthorized();
+        return false;
+      }
     }
   };
 
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', async function() {
     setThemeClass();
+    setAppVisibility(false);
+    localStorage.removeItem('bsbs_offline');
 
-    var hasToken = !!localStorage.getItem('bsbs_token');
-    var offline = localStorage.getItem('bsbs_offline') === 'true';
-    setAppVisibility(hasToken || offline);
+    if (window.BSBS_AUTH.getToken()) {
+      await window.BSBS_AUTH.restoreSession();
+      setAppVisibility(window.BSBS_AUTH.isLoggedIn());
+    }
 
     var showRegisterBtn = $('showRegisterBtn');
     var showLoginBtn = $('showLoginBtn');
@@ -117,6 +155,7 @@
           localStorage.setItem('bsbs_token', data.token);
           localStorage.setItem('bsbs_role', data.role || 'member');
           localStorage.setItem('bsbs_display_name', data.display_name || '');
+          clearNotification();
           setAppVisibility(true);
         } catch (err) {
           notify('Unable to connect to server.', 'error');
@@ -149,22 +188,24 @@
             return;
           }
 
-          notify('Account created. Please sign in.', 'success');
-          if (registerPanel && loginPanel) {
-            registerPanel.classList.add('hidden');
-            loginPanel.classList.remove('hidden');
+          if (!data.token) {
+            notify('Account created. Please sign in.', 'success');
+            if (registerPanel && loginPanel) {
+              registerPanel.classList.add('hidden');
+              loginPanel.classList.remove('hidden');
+            }
+            return;
           }
+
+          localStorage.removeItem('bsbs_offline');
+          localStorage.setItem('bsbs_token', data.token);
+          localStorage.setItem('bsbs_role', data.role || 'member');
+          localStorage.setItem('bsbs_display_name', data.display_name || display_name);
+          clearNotification();
+          setAppVisibility(true);
         } catch (err) {
           notify('Unable to connect to server.', 'error');
         }
-      });
-    }
-
-    var offlineBtn = $('offlineModeBtn');
-    if (offlineBtn) {
-      offlineBtn.addEventListener('click', function() {
-        localStorage.setItem('bsbs_offline', 'true');
-        setAppVisibility(true);
       });
     }
   });

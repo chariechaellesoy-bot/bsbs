@@ -13,6 +13,14 @@
    ```
 5. Create `.env` from `.env.example` and fill real values.
 6. Run `server/schema.sql` in CyberPanel → phpMyAdmin on database `badm_bs`.
+   For an existing install, also migrate the `players` table so each account owns its own saved roster:
+   ```sql
+   ALTER TABLE players ADD COLUMN user_id INT NULL AFTER id;
+   -- Backfill or remove legacy shared player rows before enforcing NOT NULL.
+   ALTER TABLE players MODIFY user_id INT NOT NULL;
+   ALTER TABLE players ADD UNIQUE KEY uniq_players_user_name (user_id, name);
+   ALTER TABLE players ADD CONSTRAINT fk_players_user FOREIGN KEY (user_id) REFERENCES users(id);
+   ```
 7. Start API with PM2:
    ```bash
    pm2 start server.js --name bsbs-api && pm2 save

@@ -1,16 +1,16 @@
 const express = require('express');
 const pool = require('../db');
 const auth = require('../middleware/auth');
-const adminOnly = require('../middleware/adminOnly');
 
 const router = express.Router();
 
 router.use(auth);
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, name, skill, balance, is_active FROM players ORDER BY id ASC'
+      'SELECT id, name, skill, balance, is_active FROM players WHERE user_id = ? ORDER BY id ASC',
+      [req.user.id]
     );
     return res.json(rows);
   } catch (err) {
@@ -18,18 +18,25 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', async (req, res) => {
   const { name, skill } = req.body || {};
+  const trimmedName = String(name || '').trim();
   const finalSkill = ['Beg', 'Int', 'Adv'].includes(skill) ? skill : 'Int';
 
-  if (!name) {
+  if (!trimmedName) {
     return res.status(400).json({ error: 'name is required' });
   }
 
   try {
     const [result] = await pool.query(
-      'INSERT INTO players (name, skill) VALUES (?, ?)',
-      [String(name).trim(), finalSkill]
+      `INSERT INTO players (user_id, name, skill)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         name = VALUES(name),
+         skill = VALUES(skill),
+         is_active = TRUE,
+         id = LAST_INSERT_ID(id)`,
+      [req.user.id, trimmedName, finalSkill]
     );
     return res.status(201).json({ id: result.insertId });
   } catch (err) {
@@ -37,7 +44,7 @@ router.post('/', adminOnly, async (req, res) => {
   }
 });
 
-router.patch('/:id', adminOnly, async (req, res) => {
+router.patch('/:id', async (req, res) => {
   const { id } = req.params;
   const { name, skill, balance, is_active } = req.body || {};
   const updates = [];
@@ -75,16 +82,23 @@ router.patch('/:id', adminOnly, async (req, res) => {
   }
 
   values.push(id);
+  values.push(req.user.id);
 
   try {
-    await pool.query(`UPDATE players SET ${updates.join(', ')} WHERE id = ?`, values);
+    const [result] = await pool.query(
+      `UPDATE players SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`,
+      values
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update player' });
   }
 });
 
-router.post('/:id/adjust-balance', adminOnly, async (req, res) => {
+router.post('/:id/adjust-balance', async (req, res) => {
   const { id } = req.params;
   const { amount } = req.body || {};
   const parsedAmount = Number(amount);
@@ -94,7 +108,13 @@ router.post('/:id/adjust-balance', adminOnly, async (req, res) => {
   }
 
   try {
-    await pool.query('UPDATE players SET balance = balance + ? WHERE id = ?', [parsedAmount, id]);
+    const [result] = await pool.query(
+      'UPDATE players SET balance = balance + ? WHERE id = ? AND user_id = ?',
+      [parsedAmount, id, req.user.id]
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to adjust balance' });

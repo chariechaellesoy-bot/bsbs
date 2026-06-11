@@ -1,7 +1,6 @@
 const express = require('express');
 const pool = require('../db');
 const auth = require('../middleware/auth');
-const adminOnly = require('../middleware/adminOnly');
 
 const router = express.Router();
 
@@ -15,12 +14,64 @@ function parseJsonField(value) {
   }
 }
 
+function normalizeName(value) {
+  return String(value || '').trim();
+}
+
+function extractSessionPlayers(state) {
+  const seen = new Set();
+  const players = [];
+  const playerMeta = state && state.playerMeta && typeof state.playerMeta === 'object' ? state.playerMeta : {};
+  const names = [];
+
+  if (state && Array.isArray(state.allPlayersList)) {
+    names.push(...state.allPlayersList);
+  }
+
+  if (state && Array.isArray(state.teams)) {
+    state.teams.forEach((team) => {
+      if (team && Array.isArray(team.players)) names.push(...team.players);
+    });
+  }
+
+  names.forEach((rawName) => {
+    const name = normalizeName(rawName);
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const meta = playerMeta[key] || {};
+    players.push({
+      name,
+      skill: ['Beg', 'Int', 'Adv'].includes(meta.skill) ? meta.skill : 'Int'
+    });
+  });
+
+  return players;
+}
+
+async function upsertPlayers(db, userId, state) {
+  const players = extractSessionPlayers(state);
+  for (const player of players) {
+    await db.query(
+      `INSERT INTO players (user_id, name, skill)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         name = VALUES(name),
+         skill = VALUES(skill),
+         is_active = TRUE`,
+      [userId, player.name, player.skill]
+    );
+  }
+}
+
 router.use(auth);
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, mode, created_at, completed_at FROM sessions ORDER BY created_at DESC LIMIT 50'
+      'SELECT id, mode, created_at, completed_at FROM sessions WHERE created_by = ? ORDER BY created_at DESC LIMIT 50',
+      [req.user.id]
     );
     return res.json(rows);
   } catch (err) {
@@ -28,10 +79,15 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.get('/active', async (_req, res) => {
+router.get('/active', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, mode, state_json, match_history, created_at, completed_at FROM sessions WHERE completed_at IS NULL ORDER BY created_at DESC LIMIT 1'
+      `SELECT id, mode, state_json, match_history, created_at, completed_at
+       FROM sessions
+       WHERE created_by = ? AND completed_at IS NULL
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [req.user.id]
     );
 
     if (!rows.length) {
@@ -50,8 +106,11 @@ router.get('/active', async (_req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT id, created_by, mode, state_json, match_history, completed_at, created_at FROM sessions WHERE id = ? LIMIT 1',
-      [req.params.id]
+      `SELECT id, created_by, mode, state_json, match_history, completed_at, created_at
+       FROM sessions
+       WHERE id = ? AND created_by = ?
+       LIMIT 1`,
+      [req.params.id, req.user.id]
     );
 
     if (!rows.length) {
@@ -67,7 +126,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', async (req, res) => {
   const { mode, state_json } = req.body || {};
 
   if (!['session', 'tournament', 'promotion'].includes(mode) || !state_json) {
@@ -75,6 +134,7 @@ router.post('/', adminOnly, async (req, res) => {
   }
 
   try {
+    await upsertPlayers(pool, req.user.id, state_json);
     const [result] = await pool.query(
       'INSERT INTO sessions (created_by, mode, state_json, match_history) VALUES (?, ?, ?, ?)',
       [req.user.id, mode, JSON.stringify(state_json), JSON.stringify(state_json.matchHistory || [])]
@@ -86,7 +146,7 @@ router.post('/', adminOnly, async (req, res) => {
   }
 });
 
-router.patch('/:id', adminOnly, async (req, res) => {
+router.patch('/:id', async (req, res) => {
   const { state_json, match_history } = req.body || {};
   const updates = [];
   const values = [];
@@ -106,16 +166,26 @@ router.patch('/:id', adminOnly, async (req, res) => {
   }
 
   values.push(req.params.id);
+  values.push(req.user.id);
 
   try {
-    await pool.query(`UPDATE sessions SET ${updates.join(', ')} WHERE id = ?`, values);
+    if (state_json !== undefined) {
+      await upsertPlayers(pool, req.user.id, state_json);
+    }
+    const [result] = await pool.query(
+      `UPDATE sessions SET ${updates.join(', ')} WHERE id = ? AND created_by = ?`,
+      values
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to update session' });
   }
 });
 
-router.post('/:id/complete', adminOnly, async (req, res) => {
+router.post('/:id/complete', async (req, res) => {
   const { cost_per_game } = req.body || {};
   const cost = Number(cost_per_game);
 
@@ -128,8 +198,8 @@ router.post('/:id/complete', adminOnly, async (req, res) => {
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      'SELECT id, state_json FROM sessions WHERE id = ? LIMIT 1 FOR UPDATE',
-      [req.params.id]
+      'SELECT id, state_json FROM sessions WHERE id = ? AND created_by = ? LIMIT 1 FOR UPDATE',
+      [req.params.id, req.user.id]
     );
 
     if (!rows.length) {
@@ -140,6 +210,7 @@ router.post('/:id/complete', adminOnly, async (req, res) => {
     const state = parseJsonField(rows[0].state_json) || {};
     const matchHistory = Array.isArray(state.matchHistory) ? state.matchHistory : [];
     const playCount = state.playCount && typeof state.playCount === 'object' ? state.playCount : {};
+    await upsertPlayers(conn, req.user.id, state);
 
     await conn.query(
       'UPDATE sessions SET match_history = ?, completed_at = NOW() WHERE id = ?',
@@ -148,12 +219,14 @@ router.post('/:id/complete', adminOnly, async (req, res) => {
 
     const entries = Object.entries(playCount);
     for (const [playerName, gamesPlayedRaw] of entries) {
-      const gamesPlayed = Number(gamesPlayedRaw);
+      const gamesPlayed = Number(
+        gamesPlayedRaw && typeof gamesPlayedRaw === 'object' ? gamesPlayedRaw.games : gamesPlayedRaw
+      );
       if (!Number.isFinite(gamesPlayed) || gamesPlayed <= 0) continue;
       const deduction = cost * gamesPlayed;
       await conn.query(
-        'UPDATE players SET balance = balance - ? WHERE name = ?',
-        [deduction, playerName]
+        'UPDATE players SET balance = balance - ? WHERE user_id = ? AND name = ?',
+        [deduction, req.user.id, normalizeName(playerName)]
       );
     }
 
