@@ -184,6 +184,13 @@ var PROMOTION_ENTRY_MODE = 'single';
       localStorage.setItem('badmintonPromotionState', JSON.stringify(Object.assign({}, P, { undoStack: [] })));
       localStorage.setItem('bdsMode', 'promotion');
     }
+    if (window.BSBS_API && window.BSBS_AUTH && window.BSBS_AUTH.isLoggedIn()) {
+      var _apiState = null, _apiMode = MODE;
+      if (MODE === 'session' && S.gameInProgress) _apiState = JSON.parse(JSON.stringify(Object.assign({}, S, { undoStack: [] })));
+      else if (MODE === 'tournament' && T.gameInProgress) _apiState = JSON.parse(JSON.stringify(Object.assign({}, T, { undoStack: [] })));
+      else if (MODE === 'promotion' && P.gameInProgress) _apiState = JSON.parse(JSON.stringify(Object.assign({}, P, { undoStack: [] })));
+      if (_apiState) window.BSBS_API.save(_apiMode, _apiState);
+    }
   }
 
   function load() {
@@ -2733,6 +2740,7 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
           localStorage.removeItem('badmintonPromotionState');
           localStorage.removeItem('bdsMode');
 	localStorage.removeItem('bdsAdminState');
+          if (window.BSBS_API) window.BSBS_API.clearSession();
           window.location.reload();
         }
       },
@@ -2744,6 +2752,7 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
         if (confirm('Reset the tournament? This erases all tournament data.')) {
           localStorage.removeItem('badmintonTournamentState');
           localStorage.removeItem('bdsMode');
+          if (window.BSBS_API) window.BSBS_API.clearSession();
           window.location.reload();
         }
       },
@@ -2753,6 +2762,7 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
         if (confirm('Reset the promotion mode? This erases all promotion data.')) {
           localStorage.removeItem('badmintonPromotionState');
           localStorage.removeItem('bdsMode');
+          if (window.BSBS_API) window.BSBS_API.clearSession();
           window.location.reload();
         }
       },
@@ -2954,5 +2964,46 @@ pEntryModeBulkBtn: function() { setPromotionEntryMode('bulk'); },
   pDD();
 setPlayerEntryMode('single');
 setPromotionEntryMode('single');
-  load();
+  (function() {
+    if (window.BSBS_API && window.BSBS_AUTH && window.BSBS_AUTH.isLoggedIn()) {
+      window.BSBS_API.load().then(function(data) {
+        if (data && data.state_json && data.state_json.gameInProgress) {
+          var m = data.mode;
+          var st = data.state_json;
+          if (!st.undoStack) st.undoStack = [];
+          if (m === 'session') {
+            MODE = 'session'; S = st;
+            showAppAfterModeSelect();
+            qs('#setupControls').classList.add('hidden');
+            qs('#tournamentSetupControls').classList.add('hidden');
+            if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
+            qs('#actionBar').classList.remove('hidden');
+            rAll();
+          } else if (m === 'tournament') {
+            MODE = 'tournament'; T = st;
+            showAppAfterModeSelect();
+            qs('#setupControls').classList.add('hidden');
+            qs('#tournamentSetupControls').classList.add('hidden');
+            if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
+            qs('#actionBar').classList.remove('hidden');
+            rAll();
+          } else if (m === 'promotion') {
+            MODE = 'promotion'; P = st;
+            showAppAfterModeSelect();
+            qs('#setupControls').classList.add('hidden');
+            qs('#tournamentSetupControls').classList.add('hidden');
+            if (qs('#promotionSetupControls')) qs('#promotionSetupControls').classList.add('hidden');
+            qs('#actionBar').classList.remove('hidden');
+            rAll();
+          } else {
+            load();
+          }
+        } else {
+          load();
+        }
+      }).catch(function() { load(); });
+    } else {
+      load();
+    }
+  })();
 });
